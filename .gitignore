@@ -1,3 +1,6 @@
+# Jeff answer cache
+/.jeff-cache/
+
 # Go binaries and test output
 /bin/
 /dist/

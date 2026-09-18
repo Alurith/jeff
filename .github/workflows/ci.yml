@@ -24,3 +24,11 @@ jobs:
 
       - name: Test
         run: go test ./...
+
+      - name: Cross-build
+        run: |
+          for target in linux/amd64 darwin/amd64 windows/amd64; do
+            os="${target%/*}"
+            arch="${target#*/}"
+            CGO_ENABLED=0 GOOS="$os" GOARCH="$arch" go build -o "$RUNNER_TEMP/jeff-$os-$arch" ./cmd/jeff
+          done
