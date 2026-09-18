@@ -1,0 +1,16 @@
+# Go binaries and test output
+/bin/
+/dist/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+
+# IDE and OS files
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
