@@ -1,0 +1,181 @@
+schema_version: 1
+dataset:
+  name: jeff-gen-dev
+  version: 1.0.0
+  split: dev
+  complete: true
+cases:
+  - id: dev-gen001-failure-clean
+    rule: GEN001
+    language: go
+    label: clean
+    difficulty: easy
+    pair: dev-gen001-failure
+    rationale: errors preserve the promised state and return contract
+    tags: [smoke]
+    source:
+      filename: gen001/failure.go
+      file: fixtures/dev-gen001-failure-clean.go.src
+  - id: dev-gen001-failure-violation
+    rule: GEN001
+    language: go
+    label: violation
+    difficulty: easy
+    pair: dev-gen001-failure
+    rationale: errors preserve the promised state and return contract
+    tags: [smoke]
+    source:
+      filename: gen001/failure.go
+      file: fixtures/dev-gen001-failure-violation.go.src
+  - id: dev-gen002-contract-clean
+    rule: GEN002
+    language: go
+    label: clean
+    difficulty: medium
+    pair: dev-gen002-contract
+    rationale: the local invariant is enforced before the value is used
+    tags: [smoke]
+    source:
+      filename: gen002/contract.go
+      file: fixtures/dev-gen002-contract-clean.go.src
+  - id: dev-gen002-contract-violation
+    rule: GEN002
+    language: go
+    label: violation
+    difficulty: medium
+    pair: dev-gen002-contract
+    rationale: the local invariant is enforced before the value is used
+    tags: [smoke]
+    source:
+      filename: gen002/contract.go
+      file: fixtures/dev-gen002-contract-violation.go.src
+  - id: dev-gen003-boundary-clean
+    rule: GEN003
+    language: go
+    label: clean
+    difficulty: medium
+    pair: dev-gen003-boundary
+    rationale: domain decisions and infrastructure concerns have a clear boundary
+    tags: [smoke]
+    source:
+      filename: gen003/boundary.go
+      file: fixtures/dev-gen003-boundary-clean.go.src
+  - id: dev-gen003-boundary-violation
+    rule: GEN003
+    language: go
+    label: violation
+    difficulty: medium
+    pair: dev-gen003-boundary
+    rationale: domain decisions and infrastructure concerns have a clear boundary
+    tags: [smoke]
+    source:
+      filename: gen003/boundary.go
+      file: fixtures/dev-gen003-boundary-violation.go.src
+  - id: dev-gen004-effects-clean
+    rule: GEN004
+    language: go
+    label: clean
+    difficulty: hard
+    pair: dev-gen004-effects
+    rationale: the observable mutation is explicit in the interface
+    tags: [smoke]
+    source:
+      filename: gen004/effects.go
+      file: fixtures/dev-gen004-effects-clean.go.src
+  - id: dev-gen004-effects-violation
+    rule: GEN004
+    language: go
+    label: violation
+    difficulty: hard
+    pair: dev-gen004-effects
+    rationale: the observable mutation is explicit in the interface
+    tags: [smoke]
+    source:
+      filename: gen004/effects.go
+      file: fixtures/dev-gen004-effects-violation.go.src
+  - id: dev-gen005-order-clean
+    rule: GEN005
+    language: go
+    label: clean
+    difficulty: hard
+    pair: dev-gen005-order
+    rationale: lifecycle and ordering conditions are enforced explicitly
+    tags: [smoke]
+    source:
+      filename: gen005/order.go
+      file: fixtures/dev-gen005-order-clean.go.src
+  - id: dev-gen005-order-violation
+    rule: GEN005
+    language: go
+    label: violation
+    difficulty: hard
+    pair: dev-gen005-order
+    rationale: lifecycle and ordering conditions are enforced explicitly
+    tags: [smoke]
+    source:
+      filename: gen005/order.go
+      file: fixtures/dev-gen005-order-violation.go.src
+  - id: dev-gen006-duplication-clean
+    rule: GEN006
+    language: go
+    label: clean
+    difficulty: medium
+    pair: dev-gen006-duplication
+    rationale: the domain decision has one source of truth in the file
+    tags: [smoke]
+    source:
+      filename: gen006/duplication.go
+      file: fixtures/dev-gen006-duplication-clean.go.src
+  - id: dev-gen006-duplication-violation
+    rule: GEN006
+    language: go
+    label: violation
+    difficulty: medium
+    pair: dev-gen006-duplication
+    rationale: the domain decision has one source of truth in the file
+    tags: [smoke]
+    source:
+      filename: gen006/duplication.go
+      file: fixtures/dev-gen006-duplication-violation.go.src
+  - id: dev-gen007-naming-clean
+    rule: GEN007
+    language: go
+    label: clean
+    difficulty: easy
+    pair: dev-gen007-naming
+    rationale: the public name matches the observable behavior
+    tags: [smoke]
+    source:
+      filename: gen007/naming.go
+      file: fixtures/dev-gen007-naming-clean.go.src
+  - id: dev-gen007-naming-violation
+    rule: GEN007
+    language: go
+    label: violation
+    difficulty: easy
+    pair: dev-gen007-naming
+    rationale: the public name matches the observable behavior
+    tags: [smoke]
+    source:
+      filename: gen007/naming.go
+      file: fixtures/dev-gen007-naming-violation.go.src
+  - id: dev-gen001-ambiguous
+    rule: GEN001
+    language: go
+    label: ambiguous
+    difficulty: hard
+    rationale: the fixture intentionally sits between the decision bounds
+    tags: [smoke]
+    source:
+      filename: gen001/ambiguous.go
+      file: fixtures/dev-gen001-ambiguous.go.src
+  - id: dev-gen001-not-applicable
+    rule: GEN001
+    language: markdown
+    label: not_applicable
+    difficulty: easy
+    rationale: GEN001 excludes markdown files by selector
+    tags: [smoke]
+    source:
+      filename: gen001/notes.md
+      file: fixtures/dev-gen001-not-applicable.md.src

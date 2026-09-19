@@ -1,0 +1,4 @@
+package holdoutgen007
+
+func holdoutGen007Violation() {}
+var holdoutGen007Value = 7

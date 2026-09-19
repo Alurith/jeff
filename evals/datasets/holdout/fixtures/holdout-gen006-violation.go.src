@@ -1,0 +1,4 @@
+package holdoutgen006
+
+func holdoutGen006Violation() {}
+var holdoutGen006Value = 6

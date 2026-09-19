@@ -1,0 +1,3 @@
+package testgen007
+
+func CountWords(value string) int { return len(value) }

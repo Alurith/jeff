@@ -1,0 +1,11 @@
+package gen006
+
+func allowed(value int) bool { return value >= 0 && value <= 10 }
+
+func accept(value int) bool {
+	return allowed(value)
+}
+
+func store(value int) bool {
+	return allowed(value)
+}

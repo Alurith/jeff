@@ -1,0 +1,181 @@
+schema_version: 1
+dataset:
+  name: jeff-gen-test
+  version: 1.0.0
+  split: test
+  complete: true
+cases:
+  - id: test-gen001-recovery-clean
+    rule: GEN001
+    language: go
+    label: clean
+    difficulty: easy
+    pair: test-gen001-recovery
+    rationale: recovery leaves the observable state and contract consistent
+    tags: [smoke]
+    source:
+      filename: gen001/recovery.go
+      file: fixtures/test-gen001-recovery-clean.go.src
+  - id: test-gen001-recovery-violation
+    rule: GEN001
+    language: go
+    label: violation
+    difficulty: easy
+    pair: test-gen001-recovery
+    rationale: recovery leaves the observable state and contract consistent
+    tags: [smoke]
+    source:
+      filename: gen001/recovery.go
+      file: fixtures/test-gen001-recovery-violation.go.src
+  - id: test-gen002-state-clean
+    rule: GEN002
+    language: go
+    label: clean
+    difficulty: medium
+    pair: test-gen002-state
+    rationale: valid states are enforced at the construction boundary
+    tags: [smoke]
+    source:
+      filename: gen002/state.go
+      file: fixtures/test-gen002-state-clean.go.src
+  - id: test-gen002-state-violation
+    rule: GEN002
+    language: go
+    label: violation
+    difficulty: medium
+    pair: test-gen002-state
+    rationale: valid states are enforced at the construction boundary
+    tags: [smoke]
+    source:
+      filename: gen002/state.go
+      file: fixtures/test-gen002-state-violation.go.src
+  - id: test-gen003-module-clean
+    rule: GEN003
+    language: go
+    label: clean
+    difficulty: medium
+    pair: test-gen003-module
+    rationale: the module keeps application decisions separate from adapters
+    tags: [smoke]
+    source:
+      filename: gen003/module.go
+      file: fixtures/test-gen003-module-clean.go.src
+  - id: test-gen003-module-violation
+    rule: GEN003
+    language: go
+    label: violation
+    difficulty: medium
+    pair: test-gen003-module
+    rationale: the module keeps application decisions separate from adapters
+    tags: [smoke]
+    source:
+      filename: gen003/module.go
+      file: fixtures/test-gen003-module-violation.go.src
+  - id: test-gen004-mutation-clean
+    rule: GEN004
+    language: go
+    label: clean
+    difficulty: hard
+    pair: test-gen004-mutation
+    rationale: callers can see the persistence effect from the method contract
+    tags: [smoke]
+    source:
+      filename: gen004/mutation.go
+      file: fixtures/test-gen004-mutation-clean.go.src
+  - id: test-gen004-mutation-violation
+    rule: GEN004
+    language: go
+    label: violation
+    difficulty: hard
+    pair: test-gen004-mutation
+    rationale: callers can see the persistence effect from the method contract
+    tags: [smoke]
+    source:
+      filename: gen004/mutation.go
+      file: fixtures/test-gen004-mutation-violation.go.src
+  - id: test-gen005-lifecycle-clean
+    rule: GEN005
+    language: go
+    label: clean
+    difficulty: hard
+    pair: test-gen005-lifecycle
+    rationale: lifecycle transitions are guarded and cleanup is ordered
+    tags: [smoke]
+    source:
+      filename: gen005/lifecycle.go
+      file: fixtures/test-gen005-lifecycle-clean.go.src
+  - id: test-gen005-lifecycle-violation
+    rule: GEN005
+    language: go
+    label: violation
+    difficulty: hard
+    pair: test-gen005-lifecycle
+    rationale: lifecycle transitions are guarded and cleanup is ordered
+    tags: [smoke]
+    source:
+      filename: gen005/lifecycle.go
+      file: fixtures/test-gen005-lifecycle-violation.go.src
+  - id: test-gen006-policy-clean
+    rule: GEN006
+    language: go
+    label: clean
+    difficulty: medium
+    pair: test-gen006-policy
+    rationale: the policy is represented once and reused by both branches
+    tags: [smoke]
+    source:
+      filename: gen006/policy.go
+      file: fixtures/test-gen006-policy-clean.go.src
+  - id: test-gen006-policy-violation
+    rule: GEN006
+    language: go
+    label: violation
+    difficulty: medium
+    pair: test-gen006-policy
+    rationale: the policy is represented once and reused by both branches
+    tags: [smoke]
+    source:
+      filename: gen006/policy.go
+      file: fixtures/test-gen006-policy-violation.go.src
+  - id: test-gen007-interface-clean
+    rule: GEN007
+    language: go
+    label: clean
+    difficulty: easy
+    pair: test-gen007-interface
+    rationale: the interface name accurately describes the result it returns
+    tags: [smoke]
+    source:
+      filename: gen007/interface.go
+      file: fixtures/test-gen007-interface-clean.go.src
+  - id: test-gen007-interface-violation
+    rule: GEN007
+    language: go
+    label: violation
+    difficulty: easy
+    pair: test-gen007-interface
+    rationale: the interface name accurately describes the result it returns
+    tags: [smoke]
+    source:
+      filename: gen007/interface.go
+      file: fixtures/test-gen007-interface-violation.go.src
+  - id: test-gen001-ambiguous
+    rule: GEN001
+    language: go
+    label: ambiguous
+    difficulty: hard
+    rationale: the example intentionally does not support a binary gold label
+    tags: [smoke]
+    source:
+      filename: gen001/uncertain.go
+      file: fixtures/test-gen001-ambiguous.go.src
+  - id: test-gen001-not-applicable
+    rule: GEN001
+    language: markdown
+    label: not_applicable
+    difficulty: easy
+    rationale: GEN001 excludes markdown files by selector
+    tags: [smoke]
+    source:
+      filename: gen001/readme.md
+      file: fixtures/test-gen001-not-applicable.md.src

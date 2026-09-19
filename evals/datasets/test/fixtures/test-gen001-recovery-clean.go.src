@@ -1,0 +1,10 @@
+package testgen001
+
+import "errors"
+
+func commit(value string) error {
+	if value == "" {
+		return errors.New("empty value")
+	}
+	return nil
+}

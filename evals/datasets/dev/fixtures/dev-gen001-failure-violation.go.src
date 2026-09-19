@@ -1,0 +1,12 @@
+package gen001
+
+import "errors"
+
+func writeState() error { return errors.New("write failed") }
+
+func recoverValue() error {
+	if err := writeState(); err != nil {
+		return nil
+	}
+	return nil
+}

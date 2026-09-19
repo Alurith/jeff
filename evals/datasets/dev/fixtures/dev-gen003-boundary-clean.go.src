@@ -1,0 +1,9 @@
+package gen003
+
+type Repository interface {
+	Save(string) error
+}
+
+type Service struct{ repository Repository }
+
+func (s Service) Save(value string) error { return s.repository.Save(value) }

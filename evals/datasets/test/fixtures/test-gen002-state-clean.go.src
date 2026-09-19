@@ -1,0 +1,10 @@
+package testgen002
+
+type State struct{ Ready bool }
+
+func makeState(ready bool) (State, bool) {
+	if !ready {
+		return State{}, false
+	}
+	return State{Ready: true}, true
+}

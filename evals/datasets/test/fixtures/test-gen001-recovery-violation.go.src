@@ -1,0 +1,12 @@
+package testgen001
+
+import "errors"
+
+func persist(value string) error {
+	if err := write(value); err != nil {
+		return errors.New("ok")
+	}
+	return nil
+}
+
+func write(string) error { return errors.New("persist failed") }

@@ -1,0 +1,134 @@
+name: Evaluations
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  pr-synthetic:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Validate datasets
+        run: |
+          go run ./evals/cmd/jeff-eval validate \
+            --dataset evals/datasets/dev/cases.yaml \
+            --dataset evals/datasets/test/cases.yaml \
+            --dataset evals/datasets/holdout/cases.yaml
+
+      - name: Test
+        run: go test ./... -count=1
+
+      - name: Synthetic smoke
+        run: |
+          rm -rf "$RUNNER_TEMP/jeff-eval-smoke"
+          go run ./evals/cmd/jeff-eval run \
+            --dataset evals/datasets/dev/cases.yaml \
+            --profile smoke --provider synthetic \
+            --out "$RUNNER_TEMP/jeff-eval-smoke"
+          cat "$RUNNER_TEMP/jeff-eval-smoke/summary.md" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload synthetic results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: eval-synthetic-${{ github.sha }}
+          path: ${{ runner.temp }}/jeff-eval-smoke
+
+  release-ref-guard:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require protected release ref
+        run: test "${GITHUB_REF}" = "refs/heads/main"
+
+  real-test:
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: evals-release
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Validate test dataset
+        run: go run ./evals/cmd/jeff-eval validate --dataset evals/datasets/test/cases.yaml
+
+      - name: Run real test evaluation
+        env:
+          TYPESAFE_API_KEY: ${{ secrets.TYPESAFE_API_KEY_EVALS }}
+        run: |
+          rm -rf "$RUNNER_TEMP/jeff-eval-test"
+          go run ./evals/cmd/jeff-eval run \
+            --dataset evals/datasets/test/cases.yaml \
+            --profile all --provider real --repetitions 3 \
+            --out "$RUNNER_TEMP/jeff-eval-test"
+
+      - name: Publish test summary
+        if: always()
+        run: |
+          if [ -f "$RUNNER_TEMP/jeff-eval-test/summary.md" ]; then
+            cat "$RUNNER_TEMP/jeff-eval-test/summary.md" >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: eval-real-test-${{ github.sha }}
+          path: ${{ runner.temp }}/jeff-eval-test
+
+  real-holdout:
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: evals-release
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Validate holdout dataset
+        run: go run ./evals/cmd/jeff-eval validate --dataset evals/datasets/holdout/cases.yaml
+
+      - name: Run real holdout evaluation
+        env:
+          TYPESAFE_API_KEY: ${{ secrets.TYPESAFE_API_KEY_EVALS }}
+        run: |
+          rm -rf "$RUNNER_TEMP/jeff-eval-holdout"
+          go run ./evals/cmd/jeff-eval run \
+            --dataset evals/datasets/holdout/cases.yaml \
+            --profile all --provider real --repetitions 3 \
+            --out "$RUNNER_TEMP/jeff-eval-holdout"
+
+      - name: Publish holdout summary
+        if: always()
+        run: |
+          if [ -f "$RUNNER_TEMP/jeff-eval-holdout/summary.md" ]; then
+            cat "$RUNNER_TEMP/jeff-eval-holdout/summary.md" >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Upload holdout results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: eval-real-holdout-${{ github.sha }}
+          path: ${{ runner.temp }}/jeff-eval-holdout

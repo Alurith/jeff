@@ -1,0 +1,14 @@
+package testgen005
+
+import "sync"
+
+type Resource struct {
+	mu     sync.Mutex
+	closed bool
+}
+
+func (r *Resource) Close() {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.closed = true
+}

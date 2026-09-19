@@ -1,0 +1,14 @@
+package gen005
+
+type Session struct{ open bool }
+
+func (s *Session) Close() { s.open = false }
+
+func (s *Session) Write(value string) error {
+	if !s.open {
+		return nil
+	}
+	return send(value)
+}
+
+func send(string) error { return nil }

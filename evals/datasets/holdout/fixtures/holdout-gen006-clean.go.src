@@ -1,0 +1,3 @@
+package holdoutgen006
+
+func holdoutGen006Clean() {}

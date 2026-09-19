@@ -1,0 +1,41 @@
+schema_version: 1
+model: jev-1.13.0
+repetitions: 1
+concurrency: 1
+limits:
+  manifest_bytes: 1048576
+  config_bytes: 65536
+  source_bytes: 65536
+  cases: 1000
+  request_bytes: 1048576
+  response_bytes: 1048577
+  stdout_bytes: 1048576
+  stderr_bytes: 65536
+  timeouts:
+    synthetic_seconds: 5
+    real_seconds: 45
+pricing:
+  input_usd_per_million: 0.042
+  output_usd_per_million: 0
+gates:
+  min_cases: 1
+  min_score_coverage: 1
+  max_unavailable_rate: 0
+  max_inconclusive_rate: 0.1
+  min_recall: 0.8
+  min_flip_rate: 0.8
+  max_brier: 0.15
+  max_ece: null
+  max_new_false_positives: 0
+  max_new_missed_violations: 0
+  max_new_activations: 0
+  max_score_coverage_drop: 0
+  max_flip_rate_drop: 0
+  max_inconclusive_rate_increase: 0
+  max_unavailable_rate_increase: 0
+  max_brier_increase: 0.02
+  max_ece_increase: null
+  max_p95_latency_increase_ms: null
+  max_cost_increase_usd: null
+thresholds:
+  overrides: {}

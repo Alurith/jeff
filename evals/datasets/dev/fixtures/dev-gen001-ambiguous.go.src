@@ -1,0 +1,10 @@
+package gen001
+
+func recoverValue(value string) error {
+	if value == "" {
+		return nil
+	}
+	return write(value)
+}
+
+func write(string) error { return nil }

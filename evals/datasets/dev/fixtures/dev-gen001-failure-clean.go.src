@@ -1,0 +1,12 @@
+package gen001
+
+import "errors"
+
+var failure = errors.New("failure")
+
+func recoverValue(ok bool) error {
+	if !ok {
+		return failure
+	}
+	return nil
+}

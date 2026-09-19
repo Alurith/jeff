@@ -1,0 +1,9 @@
+package gen004
+
+type Store interface {
+	Delete(string) error
+}
+
+type Service struct{ store Store }
+
+func (s Service) Delete(id string) error { return s.store.Delete(id) }

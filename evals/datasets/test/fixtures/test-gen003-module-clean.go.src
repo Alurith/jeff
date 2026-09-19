@@ -1,0 +1,9 @@
+package testgen003
+
+type Gateway interface {
+	Send(string) error
+}
+
+type Processor struct{ gateway Gateway }
+
+func (p Processor) Process(value string) error { return p.gateway.Send(value) }

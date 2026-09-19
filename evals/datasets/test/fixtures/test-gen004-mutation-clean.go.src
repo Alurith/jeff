@@ -1,0 +1,9 @@
+package testgen004
+
+type Cache interface {
+	Put(string, string) error
+}
+
+type Writer struct{ cache Cache }
+
+func (w Writer) Put(key, value string) error { return w.cache.Put(key, value) }

@@ -1,0 +1,3 @@
+package testgen007
+
+func HasWords(value string) int { return len(value) }
