@@ -25,18 +25,13 @@ func TestRunTreatsContextLimitAsTerminal(t *testing.T) {
 		if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
 			t.Error(err)
 		}
-		if len(request.Questions) == 2 {
+		if len(request.Questions) == testRuleCount {
 			w.Header().Set("Content-Length", "100")
 			w.WriteHeader(http.StatusUnprocessableEntity)
 			_, _ = w.Write([]byte(`{"detail":"context limit exceeded"}`))
 			return
 		}
-		code := "GEN001"
-		if _, ok := request.Questions[code]; !ok {
-			code = "SEC001"
-		}
-		w.Header().Set("Content-Type", "application/json")
-		_, _ = w.Write([]byte(`{"model":"jev-1.13.0","answers":{"` + code + `":{"type":"noul","noul":0.1}},"usage":{"input_tokens":1,"output_tokens":1}}`))
+		writeNoulResponse(w, request.Questions, 0.1, "", "")
 	}))
 	defer server.Close()
 

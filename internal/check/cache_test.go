@@ -27,11 +27,10 @@ func TestRunUsesPerAnswerCacheBeforeCredentials(t *testing.T) {
 		if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
 			t.Fatal(err)
 		}
-		if len(request.Questions) != 2 {
+		if len(request.Questions) != testRuleCount {
 			t.Fatalf("questions = %#v", request.Questions)
 		}
-		w.Header().Set("Content-Type", "application/json")
-		_, _ = w.Write([]byte(`{"model":"jev-1.13.0","answers":{"GEN001":{"type":"noul","noul":0.1},"SEC001":{"type":"noul","noul":0.1}},"usage":{"input_tokens":1,"output_tokens":1}}`))
+		writeNoulResponse(w, request.Questions, 0.1, "", "")
 	}))
 	defer server.Close()
 
@@ -44,7 +43,7 @@ func TestRunUsesPerAnswerCacheBeforeCredentials(t *testing.T) {
 		t.Fatalf("cached run requests=%d result=%#v", requests.Load(), second)
 	}
 	entries, err := os.ReadDir(filepath.Join(root, ".jeff-cache", "v1"))
-	if err != nil || len(entries) != 2 {
+	if err != nil || len(entries) != testRuleCount {
 		t.Fatalf("cache entries=%v err=%v", entries, err)
 	}
 	for _, entry := range entries {

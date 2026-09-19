@@ -12,6 +12,28 @@ import (
 	"testing"
 )
 
+const testRuleCount = 20
+
+func writeNoulResponse(w http.ResponseWriter, questions map[string]json.RawMessage, noul float64, violationCode, invalidCode string) {
+	answers := make(map[string]any, len(questions))
+	for code := range questions {
+		if code == invalidCode {
+			answers[code] = map[string]string{"type": "score"}
+			continue
+		}
+		value := noul
+		if code == violationCode {
+			value = 0.81
+		}
+		answers[code] = map[string]any{"type": "noul", "noul": value}
+	}
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(struct {
+		Model   string         `json:"model"`
+		Answers map[string]any `json:"answers"`
+	}{Model: "jev-1.13.0", Answers: answers})
+}
+
 func TestRunExplicitUTF8File(t *testing.T) {
 	root := t.TempDir()
 	content := "package main\n// café\n"
@@ -27,11 +49,10 @@ func TestRunExplicitUTF8File(t *testing.T) {
 		if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
 			t.Fatal(err)
 		}
-		if request.State != content || request.Model != "jev-1.13.0" || len(request.Questions) != 2 {
+		if request.State != content || request.Model != "jev-1.13.0" || len(request.Questions) != testRuleCount {
 			t.Fatalf("request = %#v", request)
 		}
-		w.Header().Set("Content-Type", "application/json")
-		_, _ = w.Write([]byte(`{"model":"jev-1.13.0","answers":{"GEN001":{"type":"noul","noul":0.10},"SEC001":{"type":"noul","noul":0.81}},"usage":{"input_tokens":1,"output_tokens":1}}`))
+		writeNoulResponse(w, request.Questions, 0.10, "GEN002", "")
 	}))
 	defer server.Close()
 
@@ -41,7 +62,7 @@ func TestRunExplicitUTF8File(t *testing.T) {
 		BaseURL: server.URL,
 		APIKey:  "test-key",
 	})
-	if len(result.Errors) != 0 || len(result.Checks) != 2 {
+	if len(result.Errors) != 0 || len(result.Checks) != testRuleCount {
 		t.Fatalf("result = %#v", result)
 	}
 	if result.Checks[0].Status != StatusPass || result.Checks[1].Status != StatusViolation || result.ExitCode() != 1 {
@@ -51,7 +72,7 @@ func TestRunExplicitUTF8File(t *testing.T) {
 	if err := WriteText(&output, result); err != nil {
 		t.Fatal(err)
 	}
-	if got := output.String(); !strings.Contains(got, "sample.go: SEC001 no-hardcoded-secret: Possible hard-coded credential") {
+	if got := output.String(); !strings.Contains(got, "sample.go: GEN002 misleading-naming: Important names appear inconsistent with their behavior or purpose") {
 		t.Fatalf("text output = %q", got)
 	}
 }
@@ -62,14 +83,19 @@ func TestRunPreservesProviderRuleCode(t *testing.T) {
 		t.Fatal(err)
 	}
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var request struct {
+			Questions map[string]json.RawMessage `json:"questions"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+			t.Fatal(err)
+		}
 		w.Header().Set("x-typesafe-request-id", "request-invalid-answer")
-		w.Header().Set("Content-Type", "application/json")
-		_, _ = w.Write([]byte(`{"model":"jev-1.13.0","answers":{"GEN001":{"type":"noul","noul":0.1},"SEC001":{"type":"score"}},"usage":{"input_tokens":1,"output_tokens":1}}`))
+		writeNoulResponse(w, request.Questions, 0.1, "", "GEN002")
 	}))
 	defer server.Close()
 
 	result := Run(context.Background(), Options{Root: root, Paths: []string{"sample.go"}, BaseURL: server.URL, APIKey: "test-key", NoCache: true})
-	if len(result.Errors) != 1 || result.Errors[0].Code != "SEC001" || result.Errors[0].RequestID != "request-invalid-answer" {
+	if len(result.Errors) != 1 || result.Errors[0].Code != "GEN002" || result.Errors[0].RequestID != "request-invalid-answer" {
 		t.Fatalf("result = %#v", result)
 	}
 }
@@ -83,7 +109,7 @@ func TestRunRejectsNULBeforeCacheAndRequest(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		requests.Add(1)
 		w.Header().Set("Content-Type", "application/json")
-		_, _ = w.Write([]byte(`{"model":"jev-1.13.0","answers":{"GEN001":{"type":"noul","noul":0.1},"SEC001":{"type":"noul","noul":0.1}},"usage":{"input_tokens":1,"output_tokens":1}}`))
+		_, _ = w.Write([]byte(`{"model":"jev-1.13.0","answers":{"GEN001":{"type":"noul","noul":0.1},"GEN002":{"type":"noul","noul":0.1}},"usage":{"input_tokens":1,"output_tokens":1}}`))
 	}))
 	defer server.Close()
 
@@ -108,7 +134,7 @@ func TestRunRejectsInvalidUTF8BeforeRequest(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		requests.Add(1)
 		w.Header().Set("Content-Type", "application/json")
-		_, _ = w.Write([]byte(`{"model":"jev-1.13.0","answers":{"GEN001":{"type":"noul","noul":0.1},"SEC001":{"type":"noul","noul":0.1}},"usage":{"input_tokens":1,"output_tokens":1}}`))
+		_, _ = w.Write([]byte(`{"model":"jev-1.13.0","answers":{"GEN001":{"type":"noul","noul":0.1},"GEN002":{"type":"noul","noul":0.1}},"usage":{"input_tokens":1,"output_tokens":1}}`))
 	}))
 	defer server.Close()
 

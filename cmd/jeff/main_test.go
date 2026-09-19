@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -16,6 +15,8 @@ import (
 
 	"jeff/internal/credentials"
 )
+
+const cliRuleCount = 20
 
 type jsonResult struct {
 	Checks []struct {
@@ -229,7 +230,7 @@ func TestRunExitCodes(t *testing.T) {
 				t.Fatalf("exit = %d, want %d", exit, test.exit)
 			}
 			result := decodeJSONResult(t, stdout.Bytes())
-			if len(result.Checks) != 2 || result.Checks[0].Status != name || result.Checks[1].Status != name {
+			if len(result.Checks) != cliRuleCount || result.Checks[0].Status != name || result.Checks[1].Status != name {
 				t.Fatalf("result = %#v", result)
 			}
 			if stderr.Len() != 0 {
@@ -241,8 +242,22 @@ func TestRunExitCodes(t *testing.T) {
 
 func noulServer(noul float64) *httptest.Server {
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var request struct {
+			Questions map[string]json.RawMessage `json:"questions"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		answers := make(map[string]map[string]any, len(request.Questions))
+		for code := range request.Questions {
+			answers[code] = map[string]any{"type": "noul", "noul": noul}
+		}
 		w.Header().Set("Content-Type", "application/json")
-		_, _ = fmt.Fprintf(w, `{"model":"jev-1.13.0","answers":{"GEN001":{"type":"noul","noul":%g},"SEC001":{"type":"noul","noul":%g}},"usage":{"input_tokens":1,"output_tokens":1}}`, noul, noul)
+		_ = json.NewEncoder(w).Encode(struct {
+			Model   string                    `json:"model"`
+			Answers map[string]map[string]any `json:"answers"`
+		}{Model: "jev-1.13.0", Answers: answers})
 	}))
 }
 
