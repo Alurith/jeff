@@ -1,6 +1,10 @@
 package rules
 
-import "testing"
+import (
+	"os"
+	"path/filepath"
+	"testing"
+)
 
 func TestLoadEmbeddedCatalog(t *testing.T) {
 	catalog, err := Load()
@@ -29,6 +33,44 @@ func TestLoadEmbeddedCatalog(t *testing.T) {
 	}
 	if catalog.Rules[0].Applies("README.md") {
 		t.Fatal("Go selector matched a Markdown file")
+	}
+}
+
+func TestLoadExternalCatalogAndModelOverride(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "team.yml")
+	content := `family: TEAM
+rules:
+  - code: TEAM001
+    name: custom-check
+    message: Custom rule
+    scope: file
+    files:
+      include:
+        - "**/*.go"
+    question:
+      type: noul
+      instructions: The file satisfies the custom condition.
+    decision:
+      pass_below: 0.20
+      fail_at_or_above: 0.80
+`
+	if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	catalog, err := LoadWithOptions(LoadOptions{ExternalFiles: []string{path}, Model: "jev-2.0.0"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if catalog.Model != "jev-2.0.0" || len(catalog.Rules) != 21 || catalog.Rules[len(catalog.Rules)-1].Code != "TEAM001" {
+		t.Fatalf("catalog = %#v", catalog)
+	}
+}
+
+func TestLoadRejectsMissingExternalRuleFile(t *testing.T) {
+	_, err := LoadWithOptions(LoadOptions{ExternalFiles: []string{filepath.Join(t.TempDir(), "missing.yml")}})
+	if err == nil {
+		t.Fatal("missing external rule file was accepted")
 	}
 }
 

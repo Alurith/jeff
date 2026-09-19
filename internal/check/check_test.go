@@ -77,6 +77,76 @@ func TestRunExplicitUTF8File(t *testing.T) {
 	}
 }
 
+func TestRunAppliesExternalRuleAndModelOverride(t *testing.T) {
+	root := t.TempDir()
+	if err := os.WriteFile(filepath.Join(root, "sample.go"), []byte("package main\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	rulePath := filepath.Join(root, "team.yml")
+	if err := os.WriteFile(rulePath, []byte(`family: TEAM
+rules:
+  - code: TEAM001
+    name: custom-check
+    message: Custom rule
+    scope: file
+    files:
+      include:
+        - "**/*.go"
+    question:
+      type: noul
+      instructions: The file satisfies the custom condition.
+    decision:
+      pass_below: 0.20
+      fail_at_or_above: 0.80
+`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var request struct {
+			Model     string                     `json:"model"`
+			Questions map[string]json.RawMessage `json:"questions"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+			t.Fatal(err)
+		}
+		if request.Model != "jev-2.0.0" || len(request.Questions) != testRuleCount+1 {
+			t.Fatalf("request = %#v", request)
+		}
+		if _, ok := request.Questions["TEAM001"]; !ok {
+			t.Fatal("external rule was not sent to TypeSafe")
+		}
+		answers := make(map[string]any, len(request.Questions))
+		for code := range request.Questions {
+			answers[code] = map[string]any{"type": "noul", "noul": 0.1}
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(struct {
+			Model   string         `json:"model"`
+			Answers map[string]any `json:"answers"`
+		}{Model: request.Model, Answers: answers})
+	}))
+	defer server.Close()
+
+	result := Run(context.Background(), Options{
+		Root:       root,
+		Paths:      []string{"sample.go"},
+		RuleFiles:  []string{rulePath},
+		JevVersion: "jev-2.0.0",
+		BaseURL:    server.URL,
+		APIKey:     "test-key",
+		NoCache:    true,
+	})
+	if len(result.Errors) != 0 || len(result.Checks) != testRuleCount+1 {
+		t.Fatalf("result = %#v", result)
+	}
+	for _, check := range result.Checks {
+		if check.Code == "TEAM001" {
+			return
+		}
+	}
+	t.Fatal("external diagnostic was not produced")
+}
+
 func TestRunPreservesProviderRuleCode(t *testing.T) {
 	root := t.TempDir()
 	if err := os.WriteFile(filepath.Join(root, "sample.go"), []byte("package main\n"), 0o644); err != nil {

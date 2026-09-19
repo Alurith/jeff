@@ -11,7 +11,9 @@ import (
 	"strings"
 
 	"jeff/internal/check"
+	"jeff/internal/config"
 	"jeff/internal/credentials"
+	"jeff/internal/files"
 
 	"golang.org/x/term"
 )
@@ -38,13 +40,14 @@ func run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 		return 2
 	}
 
-	requestedFormat := requestedOutputFormat(args[1:])
+	flagArgs, paths, requestedFormat, formatSet := partitionCheckArgs(args[1:])
 	flags := flag.NewFlagSet("jeff check", flag.ContinueOnError)
 	flags.SetOutput(io.Discard)
-	format := flags.String("output-format", "text", "output format: text or json")
+	format := flags.String("output-format", "", "output format: text or json")
+	configPath := flags.String("config", "", "path to a jeff TOML configuration file")
 	noCache := flags.Bool("no-cache", false, "do not read or write the answer cache")
 	flags.Usage = func() {}
-	if err := flags.Parse(args[1:]); err != nil {
+	if err := flags.Parse(flagArgs); err != nil {
 		if err == flag.ErrHelp {
 			writeCheckUsage(stderr, flags)
 			return 0
@@ -56,43 +59,50 @@ func run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 		writeCheckUsage(stderr, flags)
 		return 2
 	}
+	root, err := files.ResolveRoot("")
+	if err != nil {
+		return writeResult(requestedFormat, stdout, stderr, check.NewErrorResult(check.ErrorKindInput, "", err))
+	}
+	settings, err := config.Load(root, *configPath)
+	if err != nil {
+		if !formatSet && settings.OutputFormat != "" {
+			requestedFormat = settings.OutputFormat
+		}
+		return writeResult(requestedFormat, stdout, stderr, check.NewErrorResult(check.ErrorKindConfig, "", err))
+	}
+	if !formatSet {
+		*format = settings.OutputFormat
+	}
+	if *format == "" {
+		*format = "text"
+	}
 	if *format != "text" && *format != "json" {
 		fmt.Fprintf(stderr, "error: unsupported output format %q\n", *format)
 		return 2
 	}
 
+	if len(paths) == 0 && len(settings.Src) > 0 {
+		paths = settings.Src
+	}
 	apiKey, credentialErr := credentials.LoadAPIKey()
 	var result check.Result
 	if credentialErr != nil {
 		result = check.NewErrorResult(check.ErrorKindConfig, "", credentialErr)
 	} else {
 		result = check.Run(context.Background(), check.Options{
-			Paths:   flags.Args(),
-			BaseURL: os.Getenv("TYPESAFE_BASE_URL"),
-			APIKey:  apiKey,
-			NoCache: *noCache,
+			Root:       root,
+			Paths:      paths,
+			Exclude:    settings.Exclude,
+			Include:    settings.Include,
+			RuleFiles:  settings.RuleFiles,
+			JevVersion: settings.JevVersion,
+			CacheDir:   settings.CacheDir,
+			BaseURL:    os.Getenv("TYPESAFE_BASE_URL"),
+			APIKey:     apiKey,
+			NoCache:    *noCache,
 		})
 	}
-	if *format == "json" {
-		if err := check.WriteJSON(stdout, result); err != nil {
-			fmt.Fprintf(stderr, "error: write JSON output: %s\n", err)
-			return 2
-		}
-		return result.ExitCode()
-	}
-	if err := check.WriteWarnings(stderr, result); err != nil {
-		fmt.Fprintf(stderr, "error: write warning output: %s\n", err)
-		return 2
-	}
-	if err := check.WriteErrors(stderr, result); err != nil {
-		fmt.Fprintf(stderr, "error: write error output: %s\n", err)
-		return 2
-	}
-	if err := check.WriteText(stdout, result); err != nil {
-		fmt.Fprintf(stderr, "error: write text output: %s\n", err)
-		return 2
-	}
-	return result.ExitCode()
+	return writeResult(*format, stdout, stderr, result)
 }
 
 func runAuth(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
@@ -244,20 +254,71 @@ func readBoundedTTYLine(input io.Reader) ([]byte, error) {
 }
 
 func requestedOutputFormat(args []string) string {
-	format := "text"
-	for index, argument := range args {
+	_, _, format, _ := partitionCheckArgs(args)
+	return format
+}
+
+func partitionCheckArgs(args []string) (flagArgs, paths []string, format string, formatSet bool) {
+	format = "text"
+	for index := 0; index < len(args); index++ {
+		argument := args[index]
+		if argument == "--" {
+			paths = append(paths, args[index+1:]...)
+			break
+		}
 		switch {
 		case argument == "--output-format" || argument == "-output-format":
+			flagArgs = append(flagArgs, argument)
 			if index+1 < len(args) {
-				format = args[index+1]
+				index++
+				flagArgs = append(flagArgs, args[index])
+				format = args[index]
+				formatSet = true
 			}
-		case strings.HasPrefix(argument, "--output-format="):
-			format = strings.TrimPrefix(argument, "--output-format=")
-		case strings.HasPrefix(argument, "-output-format="):
-			format = strings.TrimPrefix(argument, "-output-format=")
+		case strings.HasPrefix(argument, "--output-format=") || strings.HasPrefix(argument, "-output-format="):
+			flagArgs = append(flagArgs, argument)
+			format = strings.TrimPrefix(strings.TrimPrefix(argument, "--output-format="), "-output-format=")
+			formatSet = true
+		case argument == "--config" || argument == "-config":
+			flagArgs = append(flagArgs, argument)
+			if index+1 < len(args) {
+				index++
+				flagArgs = append(flagArgs, args[index])
+			}
+		case strings.HasPrefix(argument, "--config=") || strings.HasPrefix(argument, "-config=") || argument == "--no-cache" || argument == "-no-cache":
+			flagArgs = append(flagArgs, argument)
+		case argument == "-":
+			paths = append(paths, argument)
+		case strings.HasPrefix(argument, "-"):
+			flagArgs = append(flagArgs, argument)
+		default:
+			paths = append(paths, argument)
 		}
 	}
-	return format
+	return flagArgs, paths, format, formatSet
+}
+
+func writeResult(format string, stdout, stderr io.Writer, result check.Result) int {
+	if format == "json" {
+		if err := check.WriteJSON(stdout, result); err != nil {
+			fmt.Fprintf(stderr, "error: write JSON output: %s\n", err)
+			return 2
+		}
+		return result.ExitCode()
+	}
+	if err := check.WriteWarnings(stderr, result); err != nil {
+		fmt.Fprintf(stderr, "error: write warning output: %s\n", err)
+		return 2
+	}
+	if err := check.WriteErrors(stderr, result); err != nil {
+		fmt.Fprintf(stderr, "error: write error output: %s\n", err)
+		return 2
+	}
+	if err := check.WriteText(stdout, result); err != nil {
+		fmt.Fprintf(stderr, "error: write text output: %s\n", err)
+		return 2
+	}
+	return result.ExitCode()
 }
 
 func writeJSONError(stdout, stderr io.Writer, kind check.ErrorKind, err error) int {
@@ -268,7 +329,7 @@ func writeJSONError(stdout, stderr io.Writer, kind check.ErrorKind, err error) i
 }
 
 func writeCheckUsage(w io.Writer, flags *flag.FlagSet) {
-	fmt.Fprintln(w, "Usage: jeff check [--output-format text|json] [--no-cache] [PATH...]")
+	fmt.Fprintln(w, "Usage: jeff check [--config PATH] [--output-format text|json] [--no-cache] [PATH...]")
 	flags.SetOutput(w)
 	flags.PrintDefaults()
 	flags.SetOutput(io.Discard)
@@ -282,7 +343,7 @@ func authUsage(w io.Writer) {
 
 func usage(w io.Writer) {
 	fmt.Fprintln(w, "Usage:")
-	fmt.Fprintln(w, "  jeff check [--output-format text|json] [--no-cache] [PATH...]")
+	fmt.Fprintln(w, "  jeff check [--config PATH] [--output-format text|json] [--no-cache] [PATH...]")
 	fmt.Fprintln(w, "  jeff auth login")
 	fmt.Fprintln(w, "  jeff auth logout")
 }

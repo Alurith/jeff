@@ -1,3 +1,5 @@
+github.com/BurntSushi/toml v1.5.0 h1:W5quZX/G/csjUnuI8SUYlsHs9M38FC7znL0lIO+DvMg=
+github.com/BurntSushi/toml v1.5.0/go.mod h1:ukJfTF/6rtPPRCnwkur4qwRxa8vTRFBF0uk2lLoLwho=
 github.com/Sriram-PR/go-ignore v1.0.0 h1:a1ZA6wC7WMdweJz4H7/+W5EqkBihDnFJdG9+NJUGOmg=
 github.com/Sriram-PR/go-ignore v1.0.0/go.mod h1:h5wvxkxSvVo0jb8n5I5S0DnQGQx/NiEny0WHsdKwL2A=
 github.com/danieljoos/wincred v1.2.3 h1:v7dZC2x32Ut3nEfRH+vhoZGvN72+dQ/snVXo/vMFLdQ=

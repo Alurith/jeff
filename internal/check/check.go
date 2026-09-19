@@ -21,6 +21,11 @@ import (
 type Options struct {
 	Root       string
 	Paths      []string
+	Exclude    []string
+	Include    []string
+	RuleFiles  []string
+	JevVersion string
+	CacheDir   string
 	BaseURL    string
 	APIKey     string
 	HTTPClient *http.Client
@@ -92,7 +97,10 @@ func NewErrorResult(kind ErrorKind, path string, err error) Result {
 
 func Run(ctx context.Context, options Options) Result {
 	result := Result{SchemaVersion: 1, Checks: []Diagnostic{}, Errors: []RunError{}, Warnings: []RunWarning{}}
-	catalog, err := rules.Load()
+	catalog, err := rules.LoadWithOptions(rules.LoadOptions{
+		ExternalFiles: options.RuleFiles,
+		Model:         options.JevVersion,
+	})
 	if err != nil {
 		result.addError(ErrorKindConfig, "", "", err)
 		return result
@@ -102,12 +110,22 @@ func Run(ctx context.Context, options Options) Result {
 		result.addError(ErrorKindInput, filepath.ToSlash(options.Root), "", err)
 		return result
 	}
-	inputs, err := files.Discover(root, options.Paths)
+	inputs, err := files.Discover(root, options.Paths, files.DiscoveryOptions{
+		Exclude: options.Exclude,
+		Include: options.Include,
+	})
 	if err != nil {
 		result.addError(ErrorKindInput, files.ErrorPath(err), "", err)
 		return result
 	}
-	store := cache.New(filepath.Join(root, ".jeff-cache", "v1"), options.NoCache)
+	cacheDir := options.CacheDir
+	if cacheDir == "" {
+		cacheDir = ".jeff-cache"
+	}
+	if !filepath.IsAbs(cacheDir) {
+		cacheDir = filepath.Join(root, cacheDir)
+	}
+	store := cache.New(filepath.Join(filepath.Clean(cacheDir), "v1"), options.NoCache)
 	var client *typesafe.Client
 	for _, input := range inputs {
 		checks, warnings, runErr := checkFile(ctx, input, catalog, options, store, &client)

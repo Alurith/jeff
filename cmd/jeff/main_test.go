@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync/atomic"
 	"testing"
 
 	"github.com/zalando/go-keyring"
@@ -20,6 +21,7 @@ const cliRuleCount = 20
 
 type jsonResult struct {
 	Checks []struct {
+		Path   string `json:"path"`
 		Status string `json:"status"`
 	} `json:"checks"`
 	Errors []struct {
@@ -204,6 +206,223 @@ func TestRunStructuresProviderErrors(t *testing.T) {
 	}
 }
 
+func TestRunUsesProjectConfigForSourcesOutputAndCache(t *testing.T) {
+	root := t.TempDir()
+	t.Chdir(root)
+	for _, name := range []string{"src/sample.go", "docs/readme.go"} {
+		path := filepath.Join(root, name)
+		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(path, []byte("package main\n"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := os.WriteFile(filepath.Join(root, "jeff.toml"), []byte("src = [\"src\"]\noutput-format = \"json\"\ncache-dir = \"custom-cache\"\njev-version = \"jev-2.0.0\"\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	server := noulServer(0.1)
+	defer server.Close()
+	t.Setenv("TYPESAFE_API_KEY", "test-key")
+	t.Setenv("TYPESAFE_BASE_URL", server.URL)
+	t.Setenv("JEFF_CACHE_DIR", "")
+
+	var stdout, stderr bytes.Buffer
+	if exit := run([]string{"check"}, bytes.NewReader(nil), &stdout, &stderr); exit != 0 {
+		t.Fatalf("exit=%d stdout=%q stderr=%q", exit, stdout.String(), stderr.String())
+	}
+	result := decodeJSONResult(t, stdout.Bytes())
+	if len(result.Errors) != 0 || len(result.Checks) != cliRuleCount || result.Checks[0].Path != "src/sample.go" {
+		t.Fatalf("result = %#v", result)
+	}
+	if _, err := os.Stat(filepath.Join(root, "custom-cache", "v1")); err != nil {
+		t.Fatalf("cache directory was not configured: %v", err)
+	}
+	if stderr.Len() != 0 {
+		t.Fatalf("stderr = %q", stderr.String())
+	}
+
+	stdout.Reset()
+	stderr.Reset()
+	if exit := run([]string{"check", "docs/readme.go", "--no-cache", "--output-format", "json"}, bytes.NewReader(nil), &stdout, &stderr); exit != 0 {
+		t.Fatalf("explicit path exit=%d stdout=%q stderr=%q", exit, stdout.String(), stderr.String())
+	}
+	explicit := decodeJSONResult(t, stdout.Bytes())
+	if len(explicit.Checks) != cliRuleCount || explicit.Checks[0].Path != "docs/readme.go" || stderr.Len() != 0 {
+		t.Fatalf("explicit result=%#v stderr=%q", explicit, stderr.String())
+	}
+}
+
+func TestPartitionCheckArgs(t *testing.T) {
+	flagArgs, paths, format, formatSet := partitionCheckArgs([]string{"src/main.go", "--config", "jeff.toml", "--output-format=json", "--no-cache", "--", "-literal.go"})
+	if strings.Join(flagArgs, " ") != "--config jeff.toml --output-format=json --no-cache" || strings.Join(paths, " ") != "src/main.go -literal.go" || format != "json" || !formatSet {
+		t.Fatalf("flags=%#v paths=%#v format=%q set=%v", flagArgs, paths, format, formatSet)
+	}
+}
+
+func TestRunUsesJSONForConfigErrors(t *testing.T) {
+	root := t.TempDir()
+	t.Chdir(root)
+	if err := os.WriteFile(filepath.Join(root, "jeff.toml"), []byte("output-format = \"json\"\nunknown = true\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	var stdout, stderr bytes.Buffer
+	if exit := run([]string{"check"}, bytes.NewReader(nil), &stdout, &stderr); exit != 2 {
+		t.Fatalf("exit=%d stdout=%q stderr=%q", exit, stdout.String(), stderr.String())
+	}
+	result := decodeJSONResult(t, stdout.Bytes())
+	if len(result.Errors) != 1 || result.Errors[0].Kind != "config" || stderr.Len() != 0 {
+		t.Fatalf("result=%#v stderr=%q", result, stderr.String())
+	}
+}
+
+func TestRunAcceptsFlagsAfterPaths(t *testing.T) {
+	root := t.TempDir()
+	t.Chdir(root)
+	if err := os.WriteFile(filepath.Join(root, "sample.go"), []byte("package main\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(root, "jeff.toml"), nil, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	server := noulServer(0.1)
+	defer server.Close()
+	t.Setenv("TYPESAFE_API_KEY", "test-key")
+	t.Setenv("TYPESAFE_BASE_URL", server.URL)
+
+	var stdout, stderr bytes.Buffer
+	if exit := run([]string{"check", "sample.go", "--config", "jeff.toml", "--output-format", "json", "--no-cache"}, bytes.NewReader(nil), &stdout, &stderr); exit != 0 {
+		t.Fatalf("exit=%d stdout=%q stderr=%q", exit, stdout.String(), stderr.String())
+	}
+	result := decodeJSONResult(t, stdout.Bytes())
+	if len(result.Checks) != cliRuleCount || stderr.Len() != 0 {
+		t.Fatalf("result=%#v stderr=%q", result, stderr.String())
+	}
+}
+
+func TestRunUsesConfiguredExternalRulesAndIncludes(t *testing.T) {
+	root := t.TempDir()
+	t.Chdir(root)
+	for _, name := range []string{
+		"src/main.go",
+		"lib/helper.go",
+		"docs/readme.go",
+		"generated/generated.go",
+		"tools/tool.go",
+		"vendor/dependency.go",
+	} {
+		path := filepath.Join(root, name)
+		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(path, []byte("package main\n"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := os.MkdirAll(filepath.Join(root, "rules"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(root, "rules", "team.yml"), []byte(`family: TEAM
+rules:
+  - code: TEAM001
+    name: custom-check
+    message: Custom rule
+    scope: file
+    files:
+      include:
+        - "**/*.go"
+    question:
+      type: noul
+      instructions: The file satisfies the custom condition.
+    decision:
+      pass_below: 0.20
+      fail_at_or_above: 0.80
+`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(root, "jeff.toml"), []byte(`rule-files = ["rules/team.yml"]
+src = ["src", "lib"]
+exclude = ["docs", "generated/**"]
+include = ["tools/tool.go"]
+cache-dir = "toml-cache"
+output-format = "json"
+jev-version = "jev-2.0.0"
+`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	var requests atomic.Int32
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var request struct {
+			Model     string                     `json:"model"`
+			Questions map[string]json.RawMessage `json:"questions"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+			t.Errorf("decode request: %v", err)
+			return
+		}
+		if request.Model != "jev-2.0.0" || len(request.Questions) != cliRuleCount+1 {
+			t.Errorf("request model=%q questions=%d", request.Model, len(request.Questions))
+		}
+		if _, ok := request.Questions["TEAM001"]; !ok {
+			t.Error("TEAM001 was not requested")
+		}
+		requests.Add(1)
+		answers := make(map[string]map[string]any, len(request.Questions))
+		for code := range request.Questions {
+			answers[code] = map[string]any{"type": "noul", "noul": 0.1}
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(struct {
+			Model   string                    `json:"model"`
+			Answers map[string]map[string]any `json:"answers"`
+		}{Model: request.Model, Answers: answers})
+	}))
+	defer server.Close()
+	t.Setenv("TYPESAFE_API_KEY", "test-key")
+	t.Setenv("TYPESAFE_BASE_URL", server.URL)
+	t.Setenv("JEFF_CACHE_DIR", "  env-cache  ")
+
+	var stdout, stderr bytes.Buffer
+	if exit := run([]string{"check"}, bytes.NewReader(nil), &stdout, &stderr); exit != 0 {
+		t.Fatalf("exit=%d stdout=%q stderr=%q", exit, stdout.String(), stderr.String())
+	}
+	result := decodeJSONResult(t, stdout.Bytes())
+	if len(result.Errors) != 0 || len(result.Checks) != 3*(cliRuleCount+1) {
+		t.Fatalf("result=%#v", result)
+	}
+	paths := map[string]bool{}
+	for _, check := range result.Checks {
+		paths[check.Path] = true
+	}
+	for _, path := range []string{"src/main.go", "lib/helper.go", "tools/tool.go"} {
+		if !paths[path] {
+			t.Fatalf("missing checked path %q: %#v", path, paths)
+		}
+	}
+	for _, path := range []string{"docs/readme.go", "generated/generated.go", "vendor/dependency.go"} {
+		if paths[path] {
+			t.Fatalf("excluded path was checked: %q", path)
+		}
+	}
+	if requests.Load() != 1 || stderr.Len() != 0 {
+		t.Fatalf("requests=%d stderr=%q", requests.Load(), stderr.String())
+	}
+	if _, err := os.Stat(filepath.Join(root, "env-cache", "v1")); err != nil {
+		t.Fatalf("environment cache directory missing: %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(root, "toml-cache")); !os.IsNotExist(err) {
+		t.Fatalf("TOML cache directory was used: %v", err)
+	}
+
+	stdout.Reset()
+	stderr.Reset()
+	if exit := run([]string{"check", "--output-format", "text", "--no-cache"}, bytes.NewReader(nil), &stdout, &stderr); exit != 0 || !strings.Contains(stdout.String(), "0 violation(s)") {
+		t.Fatalf("CLI output override exit=%d stdout=%q stderr=%q", exit, stdout.String(), stderr.String())
+	}
+}
+
 func TestRunExitCodes(t *testing.T) {
 	for name, test := range map[string]struct {
 		noul float64
@@ -243,6 +462,7 @@ func TestRunExitCodes(t *testing.T) {
 func noulServer(noul float64) *httptest.Server {
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var request struct {
+			Model     string                     `json:"model"`
 			Questions map[string]json.RawMessage `json:"questions"`
 		}
 		if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
@@ -257,7 +477,7 @@ func noulServer(noul float64) *httptest.Server {
 		_ = json.NewEncoder(w).Encode(struct {
 			Model   string                    `json:"model"`
 			Answers map[string]map[string]any `json:"answers"`
-		}{Model: "jev-1.13.0", Answers: answers})
+		}{Model: request.Model, Answers: answers})
 	}))
 }
 

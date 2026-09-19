@@ -7,10 +7,13 @@ import (
 	"io"
 	"io/fs"
 	"math"
-	pathpkg "path"
+	"os"
+	"path/filepath"
 	"regexp"
 	"sort"
 	"strings"
+
+	"jeff/internal/glob"
 
 	"gopkg.in/yaml.v3"
 )
@@ -72,7 +75,16 @@ var (
 	modelPattern  = regexp.MustCompile(`^jev-[0-9]+\.[0-9]+\.[0-9]+$`)
 )
 
+type LoadOptions struct {
+	ExternalFiles []string
+	Model         string
+}
+
 func Load() (Catalog, error) {
+	return LoadWithOptions(LoadOptions{})
+}
+
+func LoadWithOptions(options LoadOptions) (Catalog, error) {
 	var metadata catalogMetadata
 	if err := decodeYAML("catalog.yml", mustReadEmbedded("catalog.yml"), &metadata); err != nil {
 		return Catalog{}, err
@@ -81,40 +93,47 @@ func Load() (Catalog, error) {
 	if catalog.Version != 1 {
 		return Catalog{}, fmt.Errorf("catalog.yml: version must be 1")
 	}
-	if !modelPattern.MatchString(catalog.Model) {
-		return Catalog{}, fmt.Errorf("catalog.yml: model must be a concrete Jev version")
+	if err := validateModel(catalog.Model); err != nil {
+		return Catalog{}, fmt.Errorf("catalog.yml: %w", err)
+	}
+	if options.Model != "" {
+		if err := validateModel(options.Model); err != nil {
+			return Catalog{}, fmt.Errorf("jev-version: %w", err)
+		}
+		catalog.Model = options.Model
 	}
 
-	files, err := fs.Glob(embeddedCatalog, "catalog/*.yml")
+	sources, err := embeddedSources()
 	if err != nil {
-		return Catalog{}, fmt.Errorf("find catalog fragments: %w", err)
+		return Catalog{}, err
 	}
-	if len(files) == 0 {
-		return Catalog{}, fmt.Errorf("catalog: no family fragments")
+	external, err := externalSources(options.ExternalFiles)
+	if err != nil {
+		return Catalog{}, err
 	}
-	sort.Strings(files)
+	sources = append(sources, external...)
 
-	families := make(map[string]struct{}, len(files))
+	families := make(map[string]struct{}, len(sources))
 	codes := make(map[string]struct{})
 	names := make(map[string]struct{})
-	for _, filename := range files {
+	for _, source := range sources {
 		var part fragment
-		if err := decodeYAML(filename, mustReadEmbedded(filename), &part); err != nil {
+		if err := decodeYAML(source.name, source.data, &part); err != nil {
 			return Catalog{}, err
 		}
 		if err := validateFragment(part); err != nil {
-			return Catalog{}, fmt.Errorf("%s: %w", filename, err)
+			return Catalog{}, fmt.Errorf("%s: %w", source.name, err)
 		}
 		if _, exists := families[part.Family]; exists {
-			return Catalog{}, fmt.Errorf("%s: duplicate family %q", filename, part.Family)
+			return Catalog{}, fmt.Errorf("%s: duplicate family %q", source.name, part.Family)
 		}
 		families[part.Family] = struct{}{}
 		for _, rule := range part.Rules {
 			if _, exists := codes[rule.Code]; exists {
-				return Catalog{}, fmt.Errorf("%s: duplicate rule code %q", filename, rule.Code)
+				return Catalog{}, fmt.Errorf("%s: duplicate rule code %q", source.name, rule.Code)
 			}
 			if _, exists := names[rule.Name]; exists {
-				return Catalog{}, fmt.Errorf("%s: duplicate rule name %q", filename, rule.Name)
+				return Catalog{}, fmt.Errorf("%s: duplicate rule name %q", source.name, rule.Name)
 			}
 			codes[rule.Code] = struct{}{}
 			names[rule.Name] = struct{}{}
@@ -122,6 +141,65 @@ func Load() (Catalog, error) {
 		}
 	}
 	return catalog, nil
+}
+
+type catalogSource struct {
+	name string
+	data []byte
+}
+
+func embeddedSources() ([]catalogSource, error) {
+	files, err := fs.Glob(embeddedCatalog, "catalog/*.yml")
+	if err != nil {
+		return nil, fmt.Errorf("find catalog fragments: %w", err)
+	}
+	if len(files) == 0 {
+		return nil, fmt.Errorf("catalog: no family fragments")
+	}
+	sort.Strings(files)
+	sources := make([]catalogSource, 0, len(files))
+	for _, filename := range files {
+		sources = append(sources, catalogSource{name: filename, data: mustReadEmbedded(filename)})
+	}
+	return sources, nil
+}
+
+func externalSources(patterns []string) ([]catalogSource, error) {
+	if len(patterns) == 0 {
+		return nil, nil
+	}
+	seen := make(map[string]struct{})
+	var sources []catalogSource
+	for _, pattern := range patterns {
+		matches, err := filepath.Glob(pattern)
+		if err != nil {
+			return nil, fmt.Errorf("find external rule files %q: %w", pattern, err)
+		}
+		if len(matches) == 0 {
+			return nil, fmt.Errorf("external rule pattern %q matched no files", pattern)
+		}
+		sort.Strings(matches)
+		for _, filename := range matches {
+			filename = filepath.Clean(filename)
+			if _, exists := seen[filename]; exists {
+				continue
+			}
+			data, err := os.ReadFile(filename)
+			if err != nil {
+				return nil, fmt.Errorf("read external rule file %s: %w", filename, err)
+			}
+			seen[filename] = struct{}{}
+			sources = append(sources, catalogSource{name: filename, data: data})
+		}
+	}
+	return sources, nil
+}
+
+func validateModel(model string) error {
+	if !modelPattern.MatchString(model) {
+		return fmt.Errorf("model must be a concrete Jev version")
+	}
+	return nil
 }
 
 func mustReadEmbedded(name string) []byte {
@@ -194,27 +272,16 @@ func validateFragment(part fragment) error {
 }
 
 func validatePattern(pattern string) error {
-	pattern = strings.ReplaceAll(pattern, "\\", "/")
-	if pattern == "" || strings.HasPrefix(pattern, "/") {
-		return fmt.Errorf("file selector must be a non-empty relative glob")
-	}
-	for _, segment := range strings.Split(pattern, "/") {
-		if segment == "**" {
-			continue
-		}
-		if _, err := pathpkg.Match(segment, ""); err != nil {
-			return fmt.Errorf("invalid file selector %q: %w", pattern, err)
-		}
+	if err := glob.Validate(pattern); err != nil {
+		return fmt.Errorf("file selector: %w", err)
 	}
 	return nil
 }
 
 func (r Rule) Applies(filename string) bool {
-	filename = strings.ReplaceAll(filename, "\\", "/")
-	filename = strings.TrimPrefix(filename, "./")
 	included := false
 	for _, pattern := range r.Files.Include {
-		if globMatch(pattern, filename) {
+		if glob.Match(pattern, filename) {
 			included = true
 			break
 		}
@@ -223,39 +290,9 @@ func (r Rule) Applies(filename string) bool {
 		return false
 	}
 	for _, pattern := range r.Files.Exclude {
-		if globMatch(pattern, filename) {
+		if glob.Match(pattern, filename) {
 			return false
 		}
 	}
 	return true
-}
-
-func globMatch(pattern, filename string) bool {
-	pattern = strings.TrimPrefix(strings.ReplaceAll(pattern, "\\", "/"), "./")
-	filename = strings.TrimPrefix(strings.ReplaceAll(filename, "\\", "/"), "./")
-	patterns := strings.Split(pattern, "/")
-	parts := strings.Split(filename, "/")
-	memo := make(map[[2]int]bool)
-	seen := make(map[[2]int]bool)
-	var match func(int, int) bool
-	match = func(patternIndex, partIndex int) bool {
-		key := [2]int{patternIndex, partIndex}
-		if seen[key] {
-			return memo[key]
-		}
-		seen[key] = true
-		var result bool
-		switch {
-		case patternIndex == len(patterns):
-			result = partIndex == len(parts)
-		case patterns[patternIndex] == "**":
-			result = match(patternIndex+1, partIndex) || (partIndex < len(parts) && match(patternIndex, partIndex+1))
-		case partIndex < len(parts):
-			ok, err := pathpkg.Match(patterns[patternIndex], parts[partIndex])
-			result = err == nil && ok && match(patternIndex+1, partIndex+1)
-		}
-		memo[key] = result
-		return result
-	}
-	return match(0, 0)
 }

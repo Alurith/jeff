@@ -8,7 +8,7 @@ A read-only Go CLI that semantically checks your files against your rules using 
 
 ```sh
 # Check files in the current directory or at the provided paths
-jeff check [--output-format text|json] [--no-cache] [PATH...]
+jeff check [--config PATH] [--output-format text|json] [--no-cache] [PATH...]
 
 # Store or remove the TypeSafe credential
 jeff auth login
@@ -20,6 +20,24 @@ jeff auth logout
 Set `TYPESAFE_API_KEY` or store a credential with `jeff auth login`. Stored credentials use the operating system's keyring; `jeff auth logout` removes the saved credential.
 
 Use `TYPESAFE_BASE_URL` to point to a compatible endpoint during testing.
+
+## Project configuration
+
+Jeff reads `jeff.toml` from the invocation directory. Use `--config PATH` to select another file. Paths are relative to the project root:
+
+```toml
+src = ["src", "lib"]
+exclude = ["docs", "generated/**"]
+include = ["scripts/**/*.go"]
+rule-files = ["rules/*.yml"]
+cache-dir = ".cache/jeff"
+output-format = "json"
+jev-version = "jev-1.13.0"
+```
+
+`src` limits directory discovery when no paths are passed on the command line. `include` adds matching files outside those directories; `exclude` wins over it. Discovery patterns are positive globs (`*`, `?`, character classes, and `**`); negated `!` patterns are rejected. General exclusions (for example `.git`, `vendor`, `node_modules`, build and cache directories) are always active, and `.gitignore` is still respected. A path passed explicitly on the command line keeps the existing explicit-file behavior.
+
+`rule-files` loads external YAML rule fragments using the same schema as the embedded catalog. `JEFF_CACHE_DIR` overrides `cache-dir`; `--output-format` overrides the TOML value. The default output is `text` and the default cache is `.jeff-cache`.
 
 ## Current rules
 
