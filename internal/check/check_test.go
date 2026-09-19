@@ -12,7 +12,7 @@ import (
 	"testing"
 )
 
-const testRuleCount = 20
+const testRuleCount = 7
 
 func writeNoulResponse(w http.ResponseWriter, questions map[string]json.RawMessage, noul float64, violationCode, invalidCode string) {
 	answers := make(map[string]any, len(questions))
@@ -72,7 +72,7 @@ func TestRunExplicitUTF8File(t *testing.T) {
 	if err := WriteText(&output, result); err != nil {
 		t.Fatal(err)
 	}
-	if got := output.String(); !strings.Contains(got, "sample.go: GEN002 misleading-naming: Important names appear inconsistent with their behavior or purpose") {
+	if got := output.String(); !strings.Contains(got, "sample.go: GEN002 contract-invariant-safety: A local contract or invariant may be semantically contradicted") {
 		t.Fatalf("text output = %q", got)
 	}
 }

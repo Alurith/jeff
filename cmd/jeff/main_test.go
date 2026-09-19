@@ -17,7 +17,7 @@ import (
 	"jeff/internal/credentials"
 )
 
-const cliRuleCount = 20
+const cliRuleCount = 7
 
 type jsonResult struct {
 	Checks []struct {

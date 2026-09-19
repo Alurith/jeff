@@ -1,14 +1,12 @@
-
 family: GEN
 
 rules:
   - code: GEN001
-    name: unclear-responsibility
-    message: This file appears to contain unrelated responsibilities
+    name: failure-path-integrity
+    message: Failure paths may leave state, output, or contracts semantically inconsistent
     scope: file
     files:
-      include:
-        - "**/*"
+      include: ["**/*"]
       exclude:
         - "**/*.md"
         - "**/*.txt"
@@ -17,21 +15,20 @@ rules:
         - "**/vendor/**"
     question:
       type: noul
-      instructions: This source file mixes multiple conceptually unrelated responsibilities.
+      instructions: Judge the semantic consequences of errors, retries, cleanup, or rollback on state, output, or contracts, not error-handling syntax, unhandled err alone, TODO/stub/pass, or provisional-return patterns.
       criteria:
-        true: The file contains distinct responsibilities that could reasonably evolve independently.
-        false: The contents of the file contribute to one coherent responsibility or closely related responsibilities.
+        true: An error or recovery path can leave state, output, or a promised contract inconsistent after the path completes.
+        false: Failure and recovery paths preserve their intended state, output, and contracts, or the concern is only a deterministic or syntactic handling pattern.
     decision:
       pass_below: 0.20
       fail_at_or_above: 0.80
 
   - code: GEN002
-    name: misleading-naming
-    message: Important names appear inconsistent with their behavior or purpose
+    name: contract-invariant-safety
+    message: A local contract or invariant may be semantically contradicted
     scope: file
     files:
-      include:
-        - "**/*"
+      include: ["**/*"]
       exclude:
         - "**/*.md"
         - "**/*.txt"
@@ -40,21 +37,20 @@ rules:
         - "**/vendor/**"
     question:
       type: noul
-      instructions: This source file contains materially misleading names for important symbols.
+      instructions: Judge contradictions in local contracts or invariants that remain type-valid, not type errors, schema or range checks, TODO/stub/pass, or provisional-return findings.
       criteria:
-        true: At least one important function, method, class, type, variable, or module name would give a developer an incorrect understanding of its purpose or behavior.
-        false: Important names reasonably communicate their purpose and behavior.
+        true: The file can violate a stated or inferable local contract or invariant while remaining valid according to its types and schema.
+        false: No semantic contract or invariant contradiction is evident, or the concern is only a deterministic type, schema, range, or placeholder check.
     decision:
       pass_below: 0.20
       fail_at_or_above: 0.80
 
   - code: GEN003
-    name: excessive-responsibility
-    message: A component appears to have too many responsibilities
+    name: mixed-responsibility-boundary-mixing
+    message: Independent responsibilities or domain and infrastructure concerns are semantically entangled
     scope: file
     files:
-      include:
-        - "**/*"
+      include: ["**/*"]
       exclude:
         - "**/*.md"
         - "**/*.txt"
@@ -63,21 +59,20 @@ rules:
         - "**/vendor/**"
     question:
       type: noul
-      instructions: This source file contains a component that is responsible for too many distinct concerns.
+      instructions: Judge conceptual boundary mixing only when it harms understanding or modification, not file size, import count, or the mere presence of I/O.
       criteria:
-        true: A function, class, type, or module coordinates several distinct concerns that could reasonably be separated.
-        false: Components have focused and coherent responsibilities.
+        true: Conceptually independent responsibilities, or domain and infrastructure concerns, are intertwined in a way that materially harms understanding or modification.
+        false: The file has coherent conceptual boundaries, or the concern is only size, imports, I/O, coverage, or missing tests.
     decision:
       pass_below: 0.20
       fail_at_or_above: 0.80
 
   - code: GEN004
-    name: low-cohesion
-    message: Related code appears insufficiently cohesive
+    name: side-effect-transparency
+    message: A relevant side effect may surprise callers of the interface
     scope: file
     files:
-      include:
-        - "**/*"
+      include: ["**/*"]
       exclude:
         - "**/*.md"
         - "**/*.txt"
@@ -86,21 +81,20 @@ rules:
         - "**/vendor/**"
     question:
       type: noul
-      instructions: This source file has low cohesion between the responsibilities grouped together.
+      instructions: Judge whether an observable side effect is hidden by the name, signature, or interface, not the mere presence of I/O or mutation.
       criteria:
-        true: Important parts of the file operate on largely unrelated concepts, data, or dependencies.
-        false: The code grouped in the file is conceptually cohesive.
+        true: A relevant mutation, persistence, deletion, network, messaging, or similar effect is not reasonably signaled by the surrounding interface.
+        false: Relevant effects are absent or apparent from the interface, or the concern is only that I/O or mutation exists.
     decision:
       pass_below: 0.20
       fail_at_or_above: 0.80
 
   - code: GEN005
-    name: hidden-side-effects
-    message: Significant side effects are not obvious from the surrounding API
+    name: temporal-control-flow-fragility
+    message: Correctness may depend on an unprotected temporal or control-flow condition
     scope: file
     files:
-      include:
-        - "**/*"
+      include: ["**/*"]
       exclude:
         - "**/*.md"
         - "**/*.txt"
@@ -109,21 +103,20 @@ rules:
         - "**/vendor/**"
     question:
       type: noul
-      instructions: This source file contains significant side effects that are not reasonably apparent from names or interfaces.
+      instructions: Judge semantic dependence on order, lifecycle, retry, synchronization, resource closure, commit, interleaving, or state history, not complexity metrics, unreachable code, or mechanical race checks.
       criteria:
-        true: Code performs mutation, persistence, network access, deletion, messaging, or another significant side effect that would surprise a reasonable caller.
-        false: Significant side effects are absent or reasonably apparent from the surrounding interface.
+        true: Correct behavior depends on an unprotected ordering, lifecycle, retry, lock, close, commit, interleaving, or state-history condition.
+        false: Relevant temporal conditions are enforced or explicit, or the concern is only complexity, nesting, branch count, unreachable code, or a mechanical race finding.
     decision:
       pass_below: 0.20
-      fail_at_or_above: 0.85
+      fail_at_or_above: 0.80
 
   - code: GEN006
-    name: weak-error-handling
-    message: Error handling appears incomplete or unsafe
+    name: within-file-semantic-duplication
+    message: A domain decision or invariant is semantically duplicated within the file
     scope: file
     files:
-      include:
-        - "**/*"
+      include: ["**/*"]
       exclude:
         - "**/*.md"
         - "**/*.txt"
@@ -132,21 +125,20 @@ rules:
         - "**/vendor/**"
     question:
       type: noul
-      instructions: This source file contains error handling that may hide, ignore, or inadequately handle meaningful failures.
+      instructions: Judge repeated domain policy, decisions, or invariants with divergence risk, not textual, AST, clone, test, or boilerplate duplication.
       criteria:
-        true: An important error can be silently ignored, swallowed, replaced with insufficient information, or handled in a way that may leave the system in an invalid state.
-        false: Meaningful failures are handled or propagated appropriately.
+        true: The same meaningful domain policy, decision, or invariant is implemented in separate places and can diverge.
+        false: Repetition does not duplicate semantic knowledge, or the concern is only textual, structural, clone, test, or boilerplate duplication.
     decision:
-      pass_below: 0.15
+      pass_below: 0.20
       fail_at_or_above: 0.80
 
   - code: GEN007
-    name: poor-error-context
-    message: Errors may lose useful diagnostic context
+    name: concrete-naming-behavior-mismatch
+    message: A concrete name, signature, or interface may contradict observable behavior
     scope: file
     files:
-      include:
-        - "**/*"
+      include: ["**/*"]
       exclude:
         - "**/*.md"
         - "**/*.txt"
@@ -155,309 +147,10 @@ rules:
         - "**/vendor/**"
     question:
       type: noul
-      instructions: This source file creates or propagates errors without enough context to understand the failed operation.
+      instructions: Judge concrete contradictions between names or interfaces and observable behavior, excluding naming style and discrepancies caused only by hidden side effects.
       criteria:
-        true: At least one meaningful error path loses information that would materially help diagnose what operation failed.
-        false: Errors provide sufficient operational context or additional context would be redundant.
-    decision:
-      pass_below: 0.20
-      fail_at_or_above: 0.80
-
-  - code: GEN008
-    name: missing-input-validation
-    message: External or untrusted input may be used without adequate validation
-    scope: file
-    files:
-      include:
-        - "**/*"
-      exclude:
-        - "**/*.md"
-        - "**/*.txt"
-        - "**/.*"
-        - "**/.*/**"
-        - "**/vendor/**"
-    question:
-      type: noul
-      instructions: This source file uses externally supplied or untrusted data without adequate validation before sensitive use.
-      criteria:
-        true: Input from users, files, networks, APIs, environment variables, or other external sources reaches an operation that requires stronger validation.
-        false: Relevant external input is adequately validated or no such validation is necessary.
-    decision:
-      pass_below: 0.15
-      fail_at_or_above: 0.85
-
-  - code: GEN009
-    name: implicit-assumptions
-    message: Important assumptions are implicit in the implementation
-    scope: file
-    files:
-      include:
-        - "**/*"
-      exclude:
-        - "**/*.md"
-        - "**/*.txt"
-        - "**/.*"
-        - "**/.*/**"
-        - "**/vendor/**"
-    question:
-      type: noul
-      instructions: This source file relies on important assumptions that are neither enforced by code nor made clear by the interface.
-      criteria:
-        true: Correct behavior depends on an undocumented or unenforced condition that callers or maintainers could reasonably violate.
-        false: Important assumptions are enforced, obvious from the API, or explicitly documented where necessary.
-    decision:
-      pass_below: 0.20
-      fail_at_or_above: 0.80
-
-  - code: GEN010
-    name: unnecessary-complexity
-    message: The implementation appears more complex than necessary
-    scope: file
-    files:
-      include:
-        - "**/*"
-      exclude:
-        - "**/*.md"
-        - "**/*.txt"
-        - "**/.*"
-        - "**/.*/**"
-        - "**/vendor/**"
-    question:
-      type: noul
-      instructions: This source file uses substantially more control flow, indirection, abstraction, or state than necessary for the behavior it implements.
-      criteria:
-        true: The same behavior could reasonably be expressed with a significantly simpler structure without losing important flexibility or correctness.
-        false: The complexity is justified by the problem being solved.
-    decision:
-      pass_below: 0.20
-      fail_at_or_above: 0.85
-
-  - code: GEN011
-    name: premature-abstraction
-    message: An abstraction appears to add complexity without meaningful benefit
-    scope: file
-    files:
-      include:
-        - "**/*"
-      exclude:
-        - "**/*.md"
-        - "**/*.txt"
-        - "**/.*"
-        - "**/.*/**"
-        - "**/vendor/**"
-    question:
-      type: noul
-      instructions: This source file contains an abstraction that does not currently provide meaningful separation, reuse, substitution, or conceptual clarity.
-      criteria:
-        true: An interface, wrapper, generic layer, factory, indirection, or similar abstraction adds substantial complexity without a clear present benefit.
-        false: Abstractions have a clear responsibility and meaningful purpose.
-    decision:
-      pass_below: 0.20
-      fail_at_or_above: 0.85
-
-  - code: GEN012
-    name: inappropriate-coupling
-    message: Components appear unnecessarily coupled
-    scope: file
-    files:
-      include:
-        - "**/*"
-      exclude:
-        - "**/*.md"
-        - "**/*.txt"
-        - "**/.*"
-        - "**/.*/**"
-        - "**/vendor/**"
-    question:
-      type: noul
-      instructions: This source file contains unnecessary coupling between otherwise distinct components or concerns.
-      criteria:
-        true: A component depends on implementation details, unrelated state, or concrete collaborators beyond what is reasonably necessary.
-        false: Dependencies are appropriate for the component's responsibility.
-    decision:
-      pass_below: 0.20
-      fail_at_or_above: 0.80
-
-  - code: GEN013
-    name: abstraction-leak
-    message: An abstraction leaks implementation details to its callers
-    scope: file
-    files:
-      include:
-        - "**/*"
-      exclude:
-        - "**/*.md"
-        - "**/*.txt"
-        - "**/.*"
-        - "**/.*/**"
-        - "**/vendor/**"
-    question:
-      type: noul
-      instructions: This source file exposes implementation details through an abstraction that callers should not need to understand.
-      criteria:
-        true: Callers must know internal storage, protocol, sequencing, infrastructure, or other implementation details to use the abstraction correctly.
-        false: The abstraction hides irrelevant implementation details and exposes an appropriate contract.
-    decision:
-      pass_below: 0.20
-      fail_at_or_above: 0.80
-
-  - code: GEN014
-    name: duplicated-domain-knowledge
-    message: Domain knowledge appears duplicated within the file
-    scope: file
-    files:
-      include:
-        - "**/*"
-      exclude:
-        - "**/*.md"
-        - "**/*.txt"
-        - "**/.*"
-        - "**/.*/**"
-        - "**/vendor/**"
-    question:
-      type: noul
-      instructions: This source file expresses the same business rule, decision, mapping, or domain knowledge in multiple places.
-      criteria:
-        true: A meaningful rule or piece of domain knowledge is independently represented more than once and could become inconsistent.
-        false: Repetition is incidental, structural, or does not duplicate meaningful knowledge.
-    decision:
-      pass_below: 0.20
-      fail_at_or_above: 0.85
-
-  - code: GEN015
-    name: redundant-comments
-    message: Comments restate the code without adding useful information
-    scope: file
-    files:
-      include:
-        - "**/*"
-      exclude:
-        - "**/*.md"
-        - "**/*.txt"
-        - "**/.*"
-        - "**/.*/**"
-        - "**/vendor/**"
-    question:
-      type: noul
-      instructions: This source file contains comments that merely describe what the adjacent code already clearly expresses.
-      criteria:
-        true: One or more meaningful comments paraphrase the implementation without explaining intent, rationale, constraints, or non-obvious behavior.
-        false: Comments add useful information or there are no redundant comments.
-    decision:
-      pass_below: 0.20
-      fail_at_or_above: 0.85
-
-  - code: GEN016
-    name: missing-rationale
-    message: Non-obvious code lacks explanation of its rationale
-    scope: file
-    files:
-      include:
-        - "**/*"
-      exclude:
-        - "**/*.md"
-        - "**/*.txt"
-        - "**/.*"
-        - "**/.*/**"
-        - "**/vendor/**"
-    question:
-      type: noul
-      instructions: This source file contains important non-obvious behavior whose rationale cannot reasonably be inferred from the code.
-      criteria:
-        true: A surprising workaround, constraint, algorithmic choice, compatibility behavior, or unusual decision lacks enough explanation for a maintainer to understand why it exists.
-        false: Non-obvious decisions are sufficiently self-explanatory or appropriately documented.
-    decision:
-      pass_below: 0.20
-      fail_at_or_above: 0.80
-
-  - code: GEN017
-    name: fragile-control-flow
-    message: Control flow appears fragile or difficult to reason about
-    scope: file
-    files:
-      include:
-        - "**/*"
-      exclude:
-        - "**/*.md"
-        - "**/*.txt"
-        - "**/.*"
-        - "**/.*/**"
-        - "**/vendor/**"
-    question:
-      type: noul
-      instructions: This source file contains control flow that is unnecessarily difficult to reason about and therefore prone to maintenance errors.
-      criteria:
-        true: Correctness depends on subtle branching, ordering, shared mutable state, nested conditions, or implicit control flow that could reasonably cause mistakes.
-        false: Control flow is sufficiently explicit and understandable.
-    decision:
-      pass_below: 0.20
-      fail_at_or_above: 0.85
-
-  - code: GEN018
-    name: invalid-state-representable
-    message: The design allows invalid or contradictory state to be represented too easily
-    scope: file
-    files:
-      include:
-        - "**/*"
-      exclude:
-        - "**/*.md"
-        - "**/*.txt"
-        - "**/.*"
-        - "**/.*/**"
-        - "**/vendor/**"
-    question:
-      type: noul
-      instructions: This source file models state in a way that makes invalid or contradictory combinations unnecessarily easy to create.
-      criteria:
-        true: Multiple fields, flags, nullable values, strings, or independent properties can form states that should not be valid and the implementation does not adequately prevent them.
-        false: Invalid states are prevented, constrained, or are not a meaningful concern in this code.
-    decision:
-      pass_below: 0.20
-      fail_at_or_above: 0.85
-
-  - code: GEN019
-    name: poor-boundary-separation
-    message: Infrastructure or external concerns appear mixed with core logic
-    scope: file
-    files:
-      include:
-        - "**/*"
-      exclude:
-        - "**/*.md"
-        - "**/*.txt"
-        - "**/.*"
-        - "**/.*/**"
-        - "**/vendor/**"
-    question:
-      type: noul
-      instructions: This source file mixes core application or domain logic with infrastructure or external-system concerns in a way that reduces clarity or testability.
-      criteria:
-        true: Business or application decisions are materially intertwined with persistence, HTTP, filesystem, framework, serialization, messaging, or other infrastructure concerns.
-        false: The separation is appropriate for the size and responsibility of the component.
-    decision:
-      pass_below: 0.20
-      fail_at_or_above: 0.80
-
-  - code: GEN020
-    name: difficult-to-test
-    message: The code structure appears unnecessarily difficult to test
-    scope: file
-    files:
-      include:
-        - "**/*"
-      exclude:
-        - "**/*.md"
-        - "**/*.txt"
-        - "**/.*"
-        - "**/.*/**"
-        - "**/vendor/**"
-    question:
-      type: noul
-      instructions: This source file is structured in a way that makes important behavior unnecessarily difficult to test in isolation.
-      criteria:
-        true: Important behavior is tightly bound to global state, time, randomness, filesystem, network access, concrete infrastructure, hidden dependencies, or other effects without an appropriate seam.
-        false: Important behavior can be tested reasonably without excessive setup or reliance on unrelated infrastructure.
+        true: A reasonable caller would infer behavior from a concrete name, signature, or interface that the file observably violates.
+        false: Names and interfaces match observable behavior, or the concern is only naming convention, style, or a hidden side effect covered by GEN004.
     decision:
       pass_below: 0.20
       fail_at_or_above: 0.80
