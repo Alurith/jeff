@@ -1,0 +1,9 @@
+{
+  "references": {
+    "ruff": {
+      "repository": "git@github.com:astral-sh/ruff.git",
+      "branch": "main",
+      "description": "Riferimento esclusivamente per stile d'uso e UX della CLI: comando check, messaggi e convenzioni. Non è una specifica funzionale di jeff."
+    }
+  }
+}
