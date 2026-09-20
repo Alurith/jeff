@@ -143,3 +143,10 @@ Jeff is designed for both interactive CLI use and automation:
 - `0` means all applicable checks passed;
 - `1` means a conclusive check found a violation and no error occurred;
 - `2` means a usage, configuration, input, provider, internal, or inconclusive result.
+
+## License
+
+Copyright 2026 Alessandro Ferrini
+
+Licensed under the Apache License, Version 2.0.
+See [LICENSE](LICENSE).
