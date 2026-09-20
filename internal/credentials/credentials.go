@@ -96,8 +96,4 @@ func validateAPIKeyString(value string) error {
 	return nil
 }
 
-func Clear(value []byte) {
-	for index := range value {
-		value[index] = 0
-	}
-}
+func Clear(value []byte) { clear(value) }

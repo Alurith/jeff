@@ -1,0 +1,19 @@
+class Endpoint:
+    def __init__(self, enabled: bool):
+        self.enabled = enabled
+        self.items: set[str] = set()
+
+    def send(self, item: str) -> bool:
+        if not self.enabled:
+            return False
+        self.items.add(item)
+        return True
+
+
+def publish(item: str, endpoint: Endpoint, delivered: set[str]) -> bool:
+    if item in delivered:
+        return True
+    delivered.add(item)
+    if not endpoint.send(item):
+        return False
+    return True

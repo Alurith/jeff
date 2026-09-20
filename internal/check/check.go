@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"net/http"
 	"os"
 	"path/filepath"
 	"sort"
@@ -28,7 +27,6 @@ type Options struct {
 	CacheDir   string
 	BaseURL    string
 	APIKey     string
-	HTTPClient *http.Client
 	NoCache    bool
 }
 
@@ -181,8 +179,7 @@ func checkFile(ctx context.Context, input files.Input, catalog rules.Catalog, op
 			Instructions: rule.Question.Instructions,
 			Criteria:     criteria,
 		}
-		if entry, ok := store.Get(catalog.Model, state, question); ok {
-			noul := entry.Noul
+		if noul, ok := store.Get(catalog.Model, state, question); ok {
 			answers[rule.Code] = typesafe.Answer{Type: "noul", Noul: &noul}
 		} else {
 			misses[rule.Code] = question
@@ -195,7 +192,7 @@ func checkFile(ctx context.Context, input files.Input, catalog rules.Catalog, op
 			return nil, warnings, &runFailure{Kind: ErrorKindConfig, Err: fmt.Errorf("TYPESAFE_API_KEY is required")}
 		}
 		if *client == nil {
-			*client, err = typesafe.NewClient(options.BaseURL, options.APIKey, options.HTTPClient)
+			*client, err = typesafe.NewClient(options.BaseURL, options.APIKey, nil)
 			if err != nil {
 				return nil, warnings, &runFailure{Kind: ErrorKindConfig, Err: err}
 			}

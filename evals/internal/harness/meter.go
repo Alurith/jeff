@@ -2,7 +2,6 @@ package harness
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -314,11 +313,4 @@ func subtractFloat(left, right *float64) *float64 {
 	}
 	value := *left - *right
 	return &value
-}
-
-func requestContext(ctx context.Context, timeout time.Duration) (context.Context, context.CancelFunc) {
-	if timeout <= 0 {
-		return ctx, func() {}
-	}
-	return context.WithTimeout(ctx, timeout)
 }

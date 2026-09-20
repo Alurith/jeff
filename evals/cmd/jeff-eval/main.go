@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"path/filepath"
 
 	"jeff/evals/internal/harness"
 )
@@ -99,7 +98,7 @@ func runEvaluation(args []string, stdout, stderr io.Writer) int {
 		}
 	}
 	results, err := harness.Run(context.Background(), harness.RunOptions{
-		Dataset: dataset, Config: config, JeffBinary: jeffBinary, RepoRoot: findRepoRoot(),
+		Dataset: dataset, Config: config, JeffBinary: jeffBinary,
 		Profile: profile, Provider: provider, OutputDir: outputDir,
 	})
 	if err != nil {
@@ -148,21 +147,4 @@ func (p *pathList) Set(value string) error {
 	}
 	*p = append(*p, value)
 	return nil
-}
-
-func findRepoRoot() string {
-	current, err := os.Getwd()
-	if err != nil {
-		return ""
-	}
-	for {
-		if _, err := os.Stat(filepath.Join(current, "go.mod")); err == nil {
-			return current
-		}
-		parent := filepath.Dir(current)
-		if parent == current {
-			return ""
-		}
-		current = parent
-	}
 }

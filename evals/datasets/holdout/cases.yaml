@@ -1,147 +1,87 @@
 schema_version: 1
 dataset:
   name: jeff-gen-holdout
-  version: 1.0.0
+  version: 2.0.0
   split: holdout
   complete: true
 cases:
   - id: holdout-gen001-clean
     rule: GEN001
-    language: go
+    language: python
     label: clean
     difficulty: medium
     pair: holdout-gen001
-    rationale: held-out clean example for GEN001
+    rationale: a failed read preserves the previously active configuration
     source:
-      filename: gen001/holdout.go
-      file: fixtures/holdout-gen001-clean.go.src
+      filename: gen001/refresh.py
+      file: fixtures/holdout-gen001-refresh-clean.py.src
   - id: holdout-gen001-violation
     rule: GEN001
-    language: go
+    language: python
     label: violation
     difficulty: medium
     pair: holdout-gen001
-    rationale: held-out violation example for GEN001
+    rationale: a failed read clears the previously active configuration
     source:
-      filename: gen001/holdout.go
-      file: fixtures/holdout-gen001-violation.go.src
+      filename: gen001/refresh.py
+      file: fixtures/holdout-gen001-refresh-violation.py.src
   - id: holdout-gen002-clean
     rule: GEN002
-    language: go
+    language: python
     label: clean
     difficulty: medium
     pair: holdout-gen002
-    rationale: held-out clean example for GEN002
+    rationale: rendering reads a receipt without changing delivery state
     source:
-      filename: gen002/holdout.go
-      file: fixtures/holdout-gen002-clean.go.src
+      filename: gen002/receipt.py
+      file: fixtures/holdout-gen002-receipt-clean.py.src
   - id: holdout-gen002-violation
     rule: GEN002
-    language: go
+    language: python
     label: violation
     difficulty: medium
     pair: holdout-gen002
-    rationale: held-out violation example for GEN002
+    rationale: rendering changes delivery state without advertising a send
     source:
-      filename: gen002/holdout.go
-      file: fixtures/holdout-gen002-violation.go.src
+      filename: gen002/receipt.py
+      file: fixtures/holdout-gen002-receipt-violation.py.src
   - id: holdout-gen003-clean
     rule: GEN003
-    language: go
+    language: python
     label: clean
     difficulty: medium
     pair: holdout-gen003
-    rationale: held-out clean example for GEN003
+    rationale: quote and batch billing reuse one shared fee policy
     source:
-      filename: gen003/holdout.go
-      file: fixtures/holdout-gen003-clean.go.src
+      filename: gen003/fee.py
+      file: fixtures/holdout-gen003-fee-clean.py.src
   - id: holdout-gen003-violation
     rule: GEN003
-    language: go
+    language: python
     label: violation
     difficulty: medium
     pair: holdout-gen003
-    rationale: held-out violation example for GEN003
+    rationale: quote and batch billing independently implement the same fee policy
     source:
-      filename: gen003/holdout.go
-      file: fixtures/holdout-gen003-violation.go.src
+      filename: gen003/fee.py
+      file: fixtures/holdout-gen003-fee-violation.py.src
   - id: holdout-gen004-clean
     rule: GEN004
-    language: go
+    language: python
     label: clean
     difficulty: medium
     pair: holdout-gen004
-    rationale: held-out clean example for GEN004
+    rationale: parsing a numeric string returns its numeric value
     source:
-      filename: gen004/holdout.go
-      file: fixtures/holdout-gen004-clean.go.src
+      filename: gen004/parse.py
+      file: fixtures/holdout-gen004-parse-clean.py.src
   - id: holdout-gen004-violation
     rule: GEN004
-    language: go
+    language: python
     label: violation
     difficulty: medium
     pair: holdout-gen004
-    rationale: held-out violation example for GEN004
+    rationale: parsing a numeric string returns its text length
     source:
-      filename: gen004/holdout.go
-      file: fixtures/holdout-gen004-violation.go.src
-  - id: holdout-gen005-clean
-    rule: GEN005
-    language: go
-    label: clean
-    difficulty: medium
-    pair: holdout-gen005
-    rationale: held-out clean example for GEN005
-    source:
-      filename: gen005/holdout.go
-      file: fixtures/holdout-gen005-clean.go.src
-  - id: holdout-gen005-violation
-    rule: GEN005
-    language: go
-    label: violation
-    difficulty: medium
-    pair: holdout-gen005
-    rationale: held-out violation example for GEN005
-    source:
-      filename: gen005/holdout.go
-      file: fixtures/holdout-gen005-violation.go.src
-  - id: holdout-gen006-clean
-    rule: GEN006
-    language: go
-    label: clean
-    difficulty: medium
-    pair: holdout-gen006
-    rationale: held-out clean example for GEN006
-    source:
-      filename: gen006/holdout.go
-      file: fixtures/holdout-gen006-clean.go.src
-  - id: holdout-gen006-violation
-    rule: GEN006
-    language: go
-    label: violation
-    difficulty: medium
-    pair: holdout-gen006
-    rationale: held-out violation example for GEN006
-    source:
-      filename: gen006/holdout.go
-      file: fixtures/holdout-gen006-violation.go.src
-  - id: holdout-gen007-clean
-    rule: GEN007
-    language: go
-    label: clean
-    difficulty: medium
-    pair: holdout-gen007
-    rationale: held-out clean example for GEN007
-    source:
-      filename: gen007/holdout.go
-      file: fixtures/holdout-gen007-clean.go.src
-  - id: holdout-gen007-violation
-    rule: GEN007
-    language: go
-    label: violation
-    difficulty: medium
-    pair: holdout-gen007
-    rationale: held-out violation example for GEN007
-    source:
-      filename: gen007/holdout.go
-      file: fixtures/holdout-gen007-violation.go.src
+      filename: gen004/parse.py
+      file: fixtures/holdout-gen004-parse-violation.py.src

@@ -9,7 +9,6 @@ import (
 )
 
 type BaselineComparison struct {
-	Compatible  bool         `json:"compatible"`
 	Passed      bool         `json:"passed"`
 	Regressions []Regression `json:"regressions"`
 }
@@ -82,7 +81,7 @@ func validateBaseline(result RunResults) error {
 	if result.Metrics == nil {
 		return fmt.Errorf("metrics are required")
 	}
-	if result.Metadata.DatasetHash == "" || result.Metadata.SelectionHash == "" || result.Metadata.CatalogHash == "" || result.Metadata.ConfigHash == "" || result.Metadata.EffectiveThresholdHash == "" || result.Metadata.Model == "" || result.Metadata.Provider == "" || result.Metadata.Split == "" || result.Metadata.Repetitions < 1 || result.Metadata.Concurrency < 1 {
+	if result.Metadata.DatasetHash == "" || result.Metadata.SelectionHash == "" || result.Metadata.CatalogHash == "" || result.Metadata.ConfigHash == "" || result.Metadata.EffectiveThresholdHash == "" || result.Metadata.Model == "" || result.Metadata.Provider == "" || result.Metadata.Split == "" || result.Metadata.Repetitions < 1 {
 		return fmt.Errorf("required metadata is missing")
 	}
 	if result.Metadata.WorktreeDirty {
@@ -121,7 +120,7 @@ func CompareBaseline(baseline, candidate RunResults, gates Gates) (BaselineCompa
 	if err := validateComparisonMetrics("candidate", candidate.Metrics, gates, baseline.Metrics); err != nil {
 		return BaselineComparison{}, err
 	}
-	comparison := BaselineComparison{Compatible: true, Regressions: []Regression{}}
+	comparison := BaselineComparison{Regressions: []Regression{}}
 	baselineCases := caseIndex(baseline.Cases)
 	candidateCases := caseIndex(candidate.Cases)
 	for key, before := range baselineCases {
@@ -202,7 +201,6 @@ func compatibleBaseline(baseline, candidate RunResults) error {
 		{"catalog_hash", baseline.Metadata.CatalogHash, candidate.Metadata.CatalogHash},
 		{"config_hash", baseline.Metadata.ConfigHash, candidate.Metadata.ConfigHash},
 		{"effective_threshold_hash", baseline.Metadata.EffectiveThresholdHash, candidate.Metadata.EffectiveThresholdHash},
-		{"concurrency", fmt.Sprint(baseline.Metadata.Concurrency), fmt.Sprint(candidate.Metadata.Concurrency)},
 	}
 	for _, field := range fields {
 		if field.want != field.got {

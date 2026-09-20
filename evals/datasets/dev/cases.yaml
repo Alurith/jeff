@@ -1,181 +1,183 @@
 schema_version: 1
 dataset:
   name: jeff-gen-dev
-  version: 1.0.0
+  version: 2.0.0
   split: dev
   complete: true
 cases:
-  - id: dev-gen001-failure-clean
+  - id: dev-gen001-refresh-clean
     rule: GEN001
-    language: go
+    language: python
     label: clean
-    difficulty: easy
-    pair: dev-gen001-failure
-    rationale: errors preserve the promised state and return contract
+    difficulty: medium
+    pair: dev-gen001-refresh
+    rationale: a failed read preserves the active configuration
     tags: [smoke]
     source:
-      filename: gen001/failure.go
-      file: fixtures/dev-gen001-failure-clean.go.src
-  - id: dev-gen001-failure-violation
+      filename: gen001/refresh.py
+      file: fixtures/dev-gen001-refresh-clean.py.src
+  - id: dev-gen001-refresh-violation
     rule: GEN001
-    language: go
+    language: python
     label: violation
-    difficulty: easy
-    pair: dev-gen001-failure
-    rationale: errors preserve the promised state and return contract
+    difficulty: medium
+    pair: dev-gen001-refresh
+    rationale: a failed read clears the active configuration
     tags: [smoke]
     source:
-      filename: gen001/failure.go
-      file: fixtures/dev-gen001-failure-violation.go.src
-  - id: dev-gen002-contract-clean
+      filename: gen001/refresh.py
+      file: fixtures/dev-gen001-refresh-violation.py.src
+  - id: dev-gen001-delivery-clean
+    rule: GEN001
+    language: python
+    label: clean
+    difficulty: medium
+    pair: dev-gen001-delivery
+    rationale: failed delivery remains retryable and successful delivery is marked complete
+    tags: [smoke]
+    source:
+      filename: gen001/delivery.py
+      file: fixtures/dev-gen001-delivery-clean.py.src
+  - id: dev-gen001-delivery-violation
+    rule: GEN001
+    language: python
+    label: violation
+    difficulty: medium
+    pair: dev-gen001-delivery
+    rationale: failed delivery is marked complete before it succeeds
+    tags: [smoke]
+    source:
+      filename: gen001/delivery.py
+      file: fixtures/dev-gen001-delivery-violation.py.src
+  - id: dev-gen002-receipt-clean
     rule: GEN002
-    language: go
+    language: python
     label: clean
     difficulty: medium
-    pair: dev-gen002-contract
-    rationale: the local invariant is enforced before the value is used
+    pair: dev-gen002-receipt
+    rationale: rendering reads a receipt without changing delivery state
     tags: [smoke]
     source:
-      filename: gen002/contract.go
-      file: fixtures/dev-gen002-contract-clean.go.src
-  - id: dev-gen002-contract-violation
+      filename: gen002/receipt.py
+      file: fixtures/dev-gen002-receipt-clean.py.src
+  - id: dev-gen002-receipt-violation
     rule: GEN002
-    language: go
+    language: python
     label: violation
     difficulty: medium
-    pair: dev-gen002-contract
-    rationale: the local invariant is enforced before the value is used
+    pair: dev-gen002-receipt
+    rationale: rendering changes delivery state without advertising a send
     tags: [smoke]
     source:
-      filename: gen002/contract.go
-      file: fixtures/dev-gen002-contract-violation.go.src
-  - id: dev-gen003-boundary-clean
+      filename: gen002/receipt.py
+      file: fixtures/dev-gen002-receipt-violation.py.src
+  - id: dev-gen002-format-clean
+    rule: GEN002
+    language: python
+    label: clean
+    difficulty: medium
+    pair: dev-gen002-format
+    rationale: formatting leaves the caller-owned labels unchanged
+    tags: [smoke]
+    source:
+      filename: gen002/format.py
+      file: fixtures/dev-gen002-format-clean.py.src
+  - id: dev-gen002-format-violation
+    rule: GEN002
+    language: python
+    label: violation
+    difficulty: medium
+    pair: dev-gen002-format
+    rationale: formatting mutates the caller-owned labels
+    tags: [smoke]
+    source:
+      filename: gen002/format.py
+      file: fixtures/dev-gen002-format-violation.py.src
+  - id: dev-gen003-fee-clean
     rule: GEN003
-    language: go
+    language: python
     label: clean
     difficulty: medium
-    pair: dev-gen003-boundary
-    rationale: domain decisions and infrastructure concerns have a clear boundary
+    pair: dev-gen003-fee
+    rationale: quote and invoice reuse one fee policy
     tags: [smoke]
     source:
-      filename: gen003/boundary.go
-      file: fixtures/dev-gen003-boundary-clean.go.src
-  - id: dev-gen003-boundary-violation
+      filename: gen003/fee.py
+      file: fixtures/dev-gen003-fee-clean.py.src
+  - id: dev-gen003-fee-violation
     rule: GEN003
-    language: go
+    language: python
     label: violation
     difficulty: medium
-    pair: dev-gen003-boundary
-    rationale: domain decisions and infrastructure concerns have a clear boundary
+    pair: dev-gen003-fee
+    rationale: quote and invoice independently implement one fee policy
     tags: [smoke]
     source:
-      filename: gen003/boundary.go
-      file: fixtures/dev-gen003-boundary-violation.go.src
-  - id: dev-gen004-effects-clean
+      filename: gen003/fee.py
+      file: fixtures/dev-gen003-fee-violation.py.src
+  - id: dev-gen003-retention-clean
+    rule: GEN003
+    language: python
+    label: clean
+    difficulty: medium
+    pair: dev-gen003-retention
+    rationale: API and worker reuse one retention policy
+    tags: [smoke]
+    source:
+      filename: gen003/retention.py
+      file: fixtures/dev-gen003-retention-clean.py.src
+  - id: dev-gen003-retention-violation
+    rule: GEN003
+    language: python
+    label: violation
+    difficulty: medium
+    pair: dev-gen003-retention
+    rationale: API and worker independently implement one retention policy
+    tags: [smoke]
+    source:
+      filename: gen003/retention.py
+      file: fixtures/dev-gen003-retention-violation.py.src
+  - id: dev-gen004-parse-clean
     rule: GEN004
-    language: go
+    language: python
     label: clean
-    difficulty: hard
-    pair: dev-gen004-effects
-    rationale: the observable mutation is explicit in the interface
+    difficulty: medium
+    pair: dev-gen004-parse
+    rationale: decoding a numeric string returns its numeric value
     tags: [smoke]
     source:
-      filename: gen004/effects.go
-      file: fixtures/dev-gen004-effects-clean.go.src
-  - id: dev-gen004-effects-violation
+      filename: gen004/parse.py
+      file: fixtures/dev-gen004-parse-clean.py.src
+  - id: dev-gen004-parse-violation
     rule: GEN004
-    language: go
-    label: violation
-    difficulty: hard
-    pair: dev-gen004-effects
-    rationale: the observable mutation is explicit in the interface
-    tags: [smoke]
-    source:
-      filename: gen004/effects.go
-      file: fixtures/dev-gen004-effects-violation.go.src
-  - id: dev-gen005-order-clean
-    rule: GEN005
-    language: go
-    label: clean
-    difficulty: hard
-    pair: dev-gen005-order
-    rationale: lifecycle and ordering conditions are enforced explicitly
-    tags: [smoke]
-    source:
-      filename: gen005/order.go
-      file: fixtures/dev-gen005-order-clean.go.src
-  - id: dev-gen005-order-violation
-    rule: GEN005
-    language: go
-    label: violation
-    difficulty: hard
-    pair: dev-gen005-order
-    rationale: lifecycle and ordering conditions are enforced explicitly
-    tags: [smoke]
-    source:
-      filename: gen005/order.go
-      file: fixtures/dev-gen005-order-violation.go.src
-  - id: dev-gen006-duplication-clean
-    rule: GEN006
-    language: go
-    label: clean
-    difficulty: medium
-    pair: dev-gen006-duplication
-    rationale: the domain decision has one source of truth in the file
-    tags: [smoke]
-    source:
-      filename: gen006/duplication.go
-      file: fixtures/dev-gen006-duplication-clean.go.src
-  - id: dev-gen006-duplication-violation
-    rule: GEN006
-    language: go
+    language: python
     label: violation
     difficulty: medium
-    pair: dev-gen006-duplication
-    rationale: the domain decision has one source of truth in the file
+    pair: dev-gen004-parse
+    rationale: decoding a numeric string returns its text length
     tags: [smoke]
     source:
-      filename: gen006/duplication.go
-      file: fixtures/dev-gen006-duplication-violation.go.src
-  - id: dev-gen007-naming-clean
-    rule: GEN007
-    language: go
+      filename: gen004/parse.py
+      file: fixtures/dev-gen004-parse-violation.py.src
+  - id: dev-gen004-records-clean
+    rule: GEN004
+    language: python
     label: clean
-    difficulty: easy
-    pair: dev-gen007-naming
-    rationale: the public name matches the observable behavior
+    difficulty: medium
+    pair: dev-gen004-records
+    rationale: fetch_all returns every stored record
     tags: [smoke]
     source:
-      filename: gen007/naming.go
-      file: fixtures/dev-gen007-naming-clean.go.src
-  - id: dev-gen007-naming-violation
-    rule: GEN007
-    language: go
+      filename: gen004/records.py
+      file: fixtures/dev-gen004-records-clean.py.src
+  - id: dev-gen004-records-violation
+    rule: GEN004
+    language: python
     label: violation
-    difficulty: easy
-    pair: dev-gen007-naming
-    rationale: the public name matches the observable behavior
+    difficulty: medium
+    pair: dev-gen004-records
+    rationale: fetch_all silently truncates the stored records
     tags: [smoke]
     source:
-      filename: gen007/naming.go
-      file: fixtures/dev-gen007-naming-violation.go.src
-  - id: dev-gen001-ambiguous
-    rule: GEN001
-    language: go
-    label: ambiguous
-    difficulty: hard
-    rationale: the fixture intentionally sits between the decision bounds
-    tags: [smoke]
-    source:
-      filename: gen001/ambiguous.go
-      file: fixtures/dev-gen001-ambiguous.go.src
-  - id: dev-gen001-not-applicable
-    rule: GEN001
-    language: markdown
-    label: not_applicable
-    difficulty: easy
-    rationale: GEN001 excludes markdown files by selector
-    tags: [smoke]
-    source:
-      filename: gen001/notes.md
-      file: fixtures/dev-gen001-not-applicable.md.src
+      filename: gen004/records.py
+      file: fixtures/dev-gen004-records-violation.py.src

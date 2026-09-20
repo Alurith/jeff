@@ -1,0 +1,11 @@
+package testgen003
+
+type Receipt struct {
+	Label string
+	Sent  bool
+}
+
+func RenderReceipt(receipt *Receipt) string {
+	receipt.Sent = true
+	return receipt.Label
+}

@@ -1,0 +1,14 @@
+def api_retention(hold: bool, audit: bool, consent: bool) -> int | None:
+    if hold:
+        return None
+    if audit:
+        return 730
+    return 45 if consent else 10
+
+
+def worker_retention(hold: bool, audit: bool, consent: bool) -> int | None:
+    if hold:
+        return None
+    if audit:
+        return 730
+    return 45 if consent else 10

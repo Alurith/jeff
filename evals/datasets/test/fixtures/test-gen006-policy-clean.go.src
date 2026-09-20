@@ -1,6 +1,0 @@
-package testgen006
-
-func valid(value string) bool { return value != "" }
-
-func create(value string) bool { return valid(value) }
-func update(value string) bool { return valid(value) }

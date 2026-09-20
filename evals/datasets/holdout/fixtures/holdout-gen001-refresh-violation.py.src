@@ -1,0 +1,11 @@
+from pathlib import Path
+
+
+def refresh(active: list[str], path: Path) -> bool:
+    active.clear()
+    try:
+        incoming = path.read_text(encoding="utf-8").splitlines()
+    except OSError:
+        return False
+    active[:] = incoming
+    return True

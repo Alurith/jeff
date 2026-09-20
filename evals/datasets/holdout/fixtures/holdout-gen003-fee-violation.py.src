@@ -1,0 +1,10 @@
+def quote_fee(vip: bool, zone: str, fragile: bool) -> int:
+    if fragile:
+        return 1200
+    return 0 if vip and zone == "local" else 700
+
+
+def batch_fee(vip: bool, zone: str, fragile: bool) -> int:
+    if fragile:
+        return 1200
+    return 0 if vip and zone == "local" else 700

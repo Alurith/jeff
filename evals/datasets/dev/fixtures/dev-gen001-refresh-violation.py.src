@@ -1,0 +1,11 @@
+from pathlib import Path
+
+
+def reload_items(current: list[str], source: Path) -> bool:
+    current.clear()
+    try:
+        values = source.read_text(encoding="utf-8").splitlines()
+    except OSError:
+        return False
+    current[:] = values
+    return True

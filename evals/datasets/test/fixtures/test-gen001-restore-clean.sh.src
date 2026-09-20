@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+restore_database() {
+    local backup="$1"
+    local target="$2"
+    local temporary="${target}.tmp"
+    if ! cp "$backup" "$temporary"; then
+        rm -f "$temporary"
+        return 1
+    fi
+    if ! mv "$temporary" "$target"; then
+        rm -f "$temporary"
+        return 1
+    fi
+}
+
+restore_database "$1" "$2"

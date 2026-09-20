@@ -1,0 +1,2 @@
+def display_tags(tags: list[str]) -> str:
+    return ", ".join(sorted(tags))

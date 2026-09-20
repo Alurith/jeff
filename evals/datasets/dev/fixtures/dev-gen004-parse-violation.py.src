@@ -1,0 +1,2 @@
+def decode_amount(value: str) -> tuple[int, str | None]:
+    return len(value), None

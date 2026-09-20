@@ -1,10 +1,15 @@
 package testgen001
 
-import "errors"
+import (
+	"os"
+	"strings"
+)
 
-func commit(value string) error {
-	if value == "" {
-		return errors.New("empty value")
+func reload(active *[]string, path string) bool {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return false
 	}
-	return nil
+	*active = strings.Split(strings.TrimSpace(string(data)), "\n")
+	return true
 }

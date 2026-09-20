@@ -1,0 +1,12 @@
+def calculate_fee(vip: bool, zone: str, fragile: bool) -> int:
+    if fragile:
+        return 900
+    return 0 if vip and zone == "local" else 600
+
+
+def estimate_fee(vip: bool, zone: str, fragile: bool) -> int:
+    return calculate_fee(vip, zone, fragile)
+
+
+def invoice_fee(vip: bool, zone: str, fragile: bool) -> int:
+    return calculate_fee(vip, zone, fragile)

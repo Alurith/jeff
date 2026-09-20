@@ -15,7 +15,7 @@ func TestLoadDefaults(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if settings.Path != "" || settings.CacheDir != DefaultCacheDir || settings.OutputFormat != "text" {
+	if settings.CacheDir != DefaultCacheDir || settings.OutputFormat != "text" {
 		t.Fatalf("settings = %#v", settings)
 	}
 	if !contains(settings.Exclude, ".git") || !contains(settings.Exclude, DefaultCacheDir) {
@@ -43,7 +43,7 @@ jev-version = "jev-2.0.0"
 	if err != nil {
 		t.Fatal(err)
 	}
-	if settings.Path != configPath || settings.CacheDir != "tmp/jeff-cache" || settings.OutputFormat != "json" || settings.JevVersion != "jev-2.0.0" {
+	if settings.CacheDir != "tmp/jeff-cache" || settings.OutputFormat != "json" || settings.JevVersion != "jev-2.0.0" {
 		t.Fatalf("settings = %#v", settings)
 	}
 	if len(settings.RuleFiles) != 1 || settings.RuleFiles[0] != filepath.Join(root, "rules", "*.yml") {

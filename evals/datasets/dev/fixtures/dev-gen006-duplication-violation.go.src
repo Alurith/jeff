@@ -1,9 +1,0 @@
-package gen006
-
-func accept(value int) bool {
-	return value >= 0 && value <= 10
-}
-
-func store(value int) bool {
-	return value >= 0 && value < 10
-}

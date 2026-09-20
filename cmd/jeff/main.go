@@ -31,8 +31,9 @@ func run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 		return runAuth(args[1:], stdin, stdout, stderr)
 	}
 	if args[0] != "check" {
+		_, _, requestedFormat, _ := partitionCheckArgs(args[1:])
 		err := fmt.Errorf("unknown command %q", args[0])
-		if requestedOutputFormat(args[1:]) == "json" {
+		if requestedFormat == "json" {
 			return writeJSONError(stdout, stderr, check.ErrorKindUsage, err)
 		}
 		fmt.Fprintf(stderr, "error: %s\n", err)
@@ -251,11 +252,6 @@ func readBoundedTTYLine(input io.Reader) ([]byte, error) {
 			return value, err
 		}
 	}
-}
-
-func requestedOutputFormat(args []string) string {
-	_, _, format, _ := partitionCheckArgs(args)
-	return format
 }
 
 func partitionCheckArgs(args []string) (flagArgs, paths []string, format string, formatSet bool) {

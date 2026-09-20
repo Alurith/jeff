@@ -12,7 +12,7 @@ import (
 	"testing"
 )
 
-const testRuleCount = 7
+const testRuleCount = 4
 
 func writeNoulResponse(w http.ResponseWriter, questions map[string]json.RawMessage, noul float64, violationCode, invalidCode string) {
 	answers := make(map[string]any, len(questions))
@@ -52,7 +52,7 @@ func TestRunExplicitUTF8File(t *testing.T) {
 		if request.State != content || request.Model != "jev-1.13.0" || len(request.Questions) != testRuleCount {
 			t.Fatalf("request = %#v", request)
 		}
-		writeNoulResponse(w, request.Questions, 0.10, "GEN002", "")
+		writeNoulResponse(w, request.Questions, 0.01, "GEN003", "")
 	}))
 	defer server.Close()
 
@@ -65,14 +65,14 @@ func TestRunExplicitUTF8File(t *testing.T) {
 	if len(result.Errors) != 0 || len(result.Checks) != testRuleCount {
 		t.Fatalf("result = %#v", result)
 	}
-	if result.Checks[0].Status != StatusPass || result.Checks[1].Status != StatusViolation || result.ExitCode() != 1 {
+	if result.Checks[0].Status != StatusPass || result.Checks[2].Status != StatusViolation || result.ExitCode() != 1 {
 		t.Fatalf("checks = %#v, exit = %d", result.Checks, result.ExitCode())
 	}
 	var output strings.Builder
 	if err := WriteText(&output, result); err != nil {
 		t.Fatal(err)
 	}
-	if got := output.String(); !strings.Contains(got, "sample.go: GEN002 contract-invariant-safety: A local contract or invariant may be semantically contradicted") {
+	if got := output.String(); !strings.Contains(got, "sample.go: GEN003 within-file-semantic-duplication: A domain decision or invariant is semantically duplicated within the file") {
 		t.Fatalf("text output = %q", got)
 	}
 }
@@ -160,12 +160,12 @@ func TestRunPreservesProviderRuleCode(t *testing.T) {
 			t.Fatal(err)
 		}
 		w.Header().Set("x-typesafe-request-id", "request-invalid-answer")
-		writeNoulResponse(w, request.Questions, 0.1, "", "GEN002")
+		writeNoulResponse(w, request.Questions, 0.1, "", "GEN003")
 	}))
 	defer server.Close()
 
 	result := Run(context.Background(), Options{Root: root, Paths: []string{"sample.go"}, BaseURL: server.URL, APIKey: "test-key", NoCache: true})
-	if len(result.Errors) != 1 || result.Errors[0].Code != "GEN002" || result.Errors[0].RequestID != "request-invalid-answer" {
+	if len(result.Errors) != 1 || result.Errors[0].Code != "GEN003" || result.Errors[0].RequestID != "request-invalid-answer" {
 		t.Fatalf("result = %#v", result)
 	}
 }

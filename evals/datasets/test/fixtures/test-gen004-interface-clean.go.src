@@ -1,0 +1,7 @@
+package testgen006
+
+import "strconv"
+
+func ParseNumber(value string) (int, error) {
+	return strconv.Atoi(value)
+}

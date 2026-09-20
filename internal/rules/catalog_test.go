@@ -15,7 +15,7 @@ func TestLoadEmbeddedCatalog(t *testing.T) {
 		t.Fatalf("unexpected catalog metadata: %#v", catalog)
 	}
 	wantCodes := []string{
-		"GEN001", "GEN002", "GEN003", "GEN004", "GEN005", "GEN006", "GEN007",
+		"GEN001", "GEN002", "GEN003", "GEN004",
 	}
 	if len(catalog.Rules) != len(wantCodes) {
 		t.Fatalf("got %d rules, want %d", len(catalog.Rules), len(wantCodes))
@@ -65,7 +65,7 @@ rules:
 	if err != nil {
 		t.Fatal(err)
 	}
-	if catalog.Model != "jev-2.0.0" || len(catalog.Rules) != 8 || catalog.Rules[len(catalog.Rules)-1].Code != "TEAM001" {
+	if catalog.Model != "jev-2.0.0" || len(catalog.Rules) != 5 || catalog.Rules[len(catalog.Rules)-1].Code != "TEAM001" {
 		t.Fatalf("catalog = %#v", catalog)
 	}
 	if !catalog.Rules[len(catalog.Rules)-1].Applies("config.yaml") {

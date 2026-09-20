@@ -1,0 +1,11 @@
+import sqlite3
+
+
+def render_receipt(db: sqlite3.Connection, code: str) -> str:
+    row = db.execute(
+        "SELECT amount FROM receipts WHERE code = ?", (code,)
+    ).fetchone()
+    if row is None:
+        raise LookupError(code)
+    db.execute("UPDATE receipts SET delivered = 1 WHERE code = ?", (code,))
+    return f"{row[0]} units"

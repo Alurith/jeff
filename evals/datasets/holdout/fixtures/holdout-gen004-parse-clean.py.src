@@ -1,0 +1,5 @@
+def parse_number(value: str) -> tuple[int, str | None]:
+    try:
+        return int(value), None
+    except ValueError as error:
+        return 0, str(error)

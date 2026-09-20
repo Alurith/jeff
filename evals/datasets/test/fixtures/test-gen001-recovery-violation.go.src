@@ -1,12 +1,16 @@
 package testgen001
 
-import "errors"
+import (
+	"os"
+	"strings"
+)
 
-func persist(value string) error {
-	if err := write(value); err != nil {
-		return errors.New("ok")
+func reload(active *[]string, path string) bool {
+	*active = nil
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return false
 	}
-	return nil
+	*active = strings.Split(strings.TrimSpace(string(data)), "\n")
+	return true
 }
-
-func write(string) error { return errors.New("persist failed") }

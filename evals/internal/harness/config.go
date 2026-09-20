@@ -18,7 +18,6 @@ type Config struct {
 	SchemaVersion int          `yaml:"schema_version"`
 	Model         string       `yaml:"model"`
 	Repetitions   int          `yaml:"repetitions"`
-	Concurrency   int          `yaml:"concurrency"`
 	Limits        Limits       `yaml:"limits"`
 	Pricing       Pricing      `yaml:"pricing"`
 	Thresholds    ThresholdSet `yaml:"thresholds"`
@@ -26,10 +25,6 @@ type Config struct {
 }
 
 type Limits struct {
-	ManifestBytes int64    `yaml:"manifest_bytes"`
-	ConfigBytes   int64    `yaml:"config_bytes"`
-	SourceBytes   int64    `yaml:"source_bytes"`
-	Cases         int      `yaml:"cases"`
 	RequestBytes  int64    `yaml:"request_bytes"`
 	ResponseBytes int64    `yaml:"response_bytes"`
 	StdoutBytes   int64    `yaml:"stdout_bytes"`
@@ -86,18 +81,11 @@ type Gates struct {
 var modelPattern = regexp.MustCompile(`^jev-[0-9]+\.[0-9]+\.[0-9]+$`)
 
 func LoadConfig(filename string) (Config, error) {
-	return LoadConfigWithOptions(filename, DatasetOptions{MaxManifestBytes: 64 << 10})
-}
-
-func LoadConfigWithOptions(filename string, options DatasetOptions) (Config, error) {
-	if options.MaxManifestBytes <= 0 {
-		options.MaxManifestBytes = 64 << 10
-	}
 	path, err := cleanRegularPath(filename)
 	if err != nil {
 		return Config{}, fmt.Errorf("config: %w", err)
 	}
-	data, err := readBoundedFile(path, options.MaxManifestBytes)
+	data, err := readBoundedFile(path, 64<<10)
 	if err != nil {
 		return Config{}, fmt.Errorf("config %s: %w", filename, err)
 	}
@@ -128,9 +116,6 @@ func (c Config) Validate() error {
 	if c.Repetitions < 1 || c.Repetitions > 10 {
 		return fmt.Errorf("repetitions must be between 1 and 10")
 	}
-	if c.Concurrency < 1 || c.Concurrency > 16 {
-		return fmt.Errorf("concurrency must be between 1 and 16")
-	}
 	if err := c.Limits.Validate(); err != nil {
 		return err
 	}
@@ -155,9 +140,6 @@ func (c Config) Validate() error {
 
 func (l Limits) Validate() error {
 	for name, value := range map[string]int64{
-		"manifest_bytes": l.ManifestBytes,
-		"config_bytes":   l.ConfigBytes,
-		"source_bytes":   l.SourceBytes,
 		"request_bytes":  l.RequestBytes,
 		"response_bytes": l.ResponseBytes,
 		"stdout_bytes":   l.StdoutBytes,
@@ -166,9 +148,6 @@ func (l Limits) Validate() error {
 		if value <= 0 {
 			return fmt.Errorf("limits.%s must be positive", name)
 		}
-	}
-	if l.Cases < 1 || l.Cases > DefaultCaseCount {
-		return fmt.Errorf("limits.cases must be between 1 and %d", DefaultCaseCount)
 	}
 	if l.Timeouts.SyntheticSeconds < 1 || l.Timeouts.RealSeconds < 1 {
 		return fmt.Errorf("limits.timeouts must be positive")

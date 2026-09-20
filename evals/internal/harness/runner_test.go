@@ -28,9 +28,9 @@ func TestRunnerSyntheticEndToEnd(t *testing.T) {
 	notApplicable := "# documentation\n"
 	manifest := writeManifest(t, t.TempDir(), "cases.yaml", "dev", false, []Case{
 		{ID: "clean-case", Rule: "GEN001", Language: "go", Label: LabelClean, Difficulty: DifficultyEasy, Tags: []string{"smoke"}, Source: Source{Filename: "clean.go", Inline: &clean}},
-		{ID: "violation-case", Rule: "GEN002", Language: "go", Label: LabelViolation, Difficulty: DifficultyEasy, Tags: []string{"smoke"}, Source: Source{Filename: "violation.go", Inline: &violation}},
-		{ID: "ambiguous-case", Rule: "GEN003", Language: "go", Label: LabelAmbiguous, Difficulty: DifficultyMedium, Rationale: "score is intentionally inconclusive", Tags: []string{"smoke"}, Source: Source{Filename: "ambiguous.go", Inline: &ambiguous}},
-		{ID: "not-applicable-case", Rule: "GEN004", Language: "markdown", Label: LabelNotApplicable, Difficulty: DifficultyEasy, Rationale: "GEN004 excludes markdown files", Tags: []string{"smoke"}, Source: Source{Filename: "notes.md", Inline: &notApplicable}},
+		{ID: "violation-case", Rule: "GEN003", Language: "go", Label: LabelViolation, Difficulty: DifficultyEasy, Tags: []string{"smoke"}, Source: Source{Filename: "violation.go", Inline: &violation}},
+		{ID: "ambiguous-case", Rule: "GEN002", Language: "go", Label: LabelAmbiguous, Difficulty: DifficultyMedium, Rationale: "score is intentionally inconclusive", Tags: []string{"smoke"}, Source: Source{Filename: "ambiguous.go", Inline: &ambiguous}},
+		{ID: "not-applicable-case", Rule: "GEN002", Language: "markdown", Label: LabelNotApplicable, Difficulty: DifficultyEasy, Rationale: "GEN002 excludes markdown files", Tags: []string{"smoke"}, Source: Source{Filename: "notes.md", Inline: &notApplicable}},
 	})
 	dataset, err := LoadDataset(manifest)
 	if err != nil {

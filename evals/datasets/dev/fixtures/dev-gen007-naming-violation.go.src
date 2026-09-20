@@ -1,5 +1,0 @@
-package gen007
-
-func IsValidNumber(value string) (int, error) {
-	return len(value), nil
-}

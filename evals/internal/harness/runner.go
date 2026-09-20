@@ -12,6 +12,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"sort"
 	"strings"
 	"time"
@@ -56,7 +57,6 @@ type RunMetadata struct {
 	CatalogHash            string `json:"catalog_hash"`
 	ConfigHash             string `json:"config_hash"`
 	EffectiveThresholdHash string `json:"effective_threshold_hash"`
-	Concurrency            int    `json:"concurrency"`
 	GitCommit              string `json:"git_commit,omitempty"`
 	WorktreeDirty          bool   `json:"worktree_dirty"`
 }
@@ -237,7 +237,6 @@ func Run(ctx context.Context, options RunOptions) (RunResults, error) {
 			CatalogHash:            catalogHash,
 			ConfigHash:             configHash,
 			EffectiveThresholdHash: thresholdHash,
-			Concurrency:            options.Config.Concurrency,
 			GitCommit:              gitCommit,
 			WorktreeDirty:          dirty,
 		},
@@ -253,7 +252,7 @@ func Run(ctx context.Context, options RunOptions) (RunResults, error) {
 			if options.Provider == "real" {
 				timeout = time.Duration(options.Config.Limits.Timeouts.RealSeconds) * time.Second
 			}
-			caseContext, cancel := requestContext(ctx, timeout)
+			caseContext, cancel := context.WithTimeout(ctx, timeout)
 			observation := executeCase(caseContext, binary, provider.URL(), options.Config, catalog, effectiveThresholds, item, repetition, options.Provider, apiKey)
 			cancel()
 			applyMetering(&observation, meterDelta(before, provider.Snapshot()), options.Config.Pricing)
@@ -312,7 +311,7 @@ func selectCases(dataset Dataset, profile string) ([]LoadedCase, error) {
 	profile = profileName(profile)
 	selected := make([]LoadedCase, 0, len(dataset.Cases))
 	for _, item := range dataset.Cases {
-		if profile == "smoke" && !hasTag(item.Tags, "smoke") {
+		if profile == "smoke" && !slices.Contains(item.Tags, "smoke") {
 			continue
 		}
 		selected = append(selected, item)
@@ -329,15 +328,6 @@ func profileName(profile string) string {
 		return "all"
 	}
 	return profile
-}
-
-func hasTag(tags []string, wanted string) bool {
-	for _, tag := range tags {
-		if tag == wanted {
-			return true
-		}
-	}
-	return false
 }
 
 func executeCase(ctx context.Context, binary, providerURL string, config Config, catalog rules.Catalog, thresholds map[string]EffectiveThreshold, item LoadedCase, repetition int, provider, apiKey string) CaseResult {
@@ -435,10 +425,6 @@ func executeCase(ctx context.Context, binary, providerURL string, config Config,
 		result.ErrorKind = "provider_or_cli"
 	}
 	return result
-}
-
-func syntheticEnvironment(providerURL string) []string {
-	return providerEnvironment(providerURL, "synthetic", syntheticAPIKey)
 }
 
 func providerEnvironment(providerURL, provider, apiKey string) []string {

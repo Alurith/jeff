@@ -1,0 +1,19 @@
+package testgen005
+
+func fee(vip bool, zone string, fragile bool) int {
+	if fragile {
+		return 800
+	}
+	if vip && zone == "local" {
+		return 0
+	}
+	return 500
+}
+
+func quoteFee(vip bool, zone string, fragile bool) int {
+	return fee(vip, zone, fragile)
+}
+
+func invoiceFee(vip bool, zone string, fragile bool) int {
+	return fee(vip, zone, fragile)
+}

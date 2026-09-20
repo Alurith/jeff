@@ -3,6 +3,7 @@ package harness
 import (
 	"fmt"
 	"math"
+	"slices"
 	"sort"
 
 	"jeff/internal/rules"
@@ -221,7 +222,7 @@ func ComputeMetrics(observations []CaseResult, catalog rules.Catalog) (Metrics, 
 				entry.opportunities++
 				if check.Status == "violation" {
 					entry.activations++
-					if containsString(observation.AllowedActivations, rule.Code) {
+					if slices.Contains(observation.AllowedActivations, rule.Code) {
 						entry.allowlisted++
 					} else {
 						entry.unexpected++
@@ -494,15 +495,6 @@ func validObservationScore(observation *CaseResult) bool {
 
 func validScore(value float64) bool {
 	return !math.IsNaN(value) && !math.IsInf(value, 0) && value >= 0 && value <= 1
-}
-
-func containsString(values []string, wanted string) bool {
-	for _, value := range values {
-		if value == wanted {
-			return true
-		}
-	}
-	return false
 }
 
 func ratio(numerator, denominator int) *float64 {

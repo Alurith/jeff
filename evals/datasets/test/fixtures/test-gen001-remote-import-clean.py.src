@@ -1,0 +1,27 @@
+from dataclasses import dataclass
+
+
+@dataclass(frozen=True)
+class Order:
+    reference: str
+
+
+class ImportState:
+    def __init__(self):
+        self.completed = set()
+
+    def contains(self, reference):
+        return reference in self.completed
+
+    def mark_completed(self, reference):
+        self.completed.add(reference)
+
+
+def import_orders(orders, remote_import, state):
+    for order in orders:
+        if state.contains(order.reference):
+            continue
+        if not remote_import(order):
+            return False
+        state.mark_completed(order.reference)
+    return True

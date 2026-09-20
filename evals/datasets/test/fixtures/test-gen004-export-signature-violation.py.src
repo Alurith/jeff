@@ -1,0 +1,6 @@
+class Exporter:
+    def __init__(self, records: tuple[str, ...]):
+        self.records = records
+
+    def fetch_all_records(self) -> list[str]:
+        return list(self.records[:1])

@@ -26,7 +26,6 @@ type SyntheticProvider struct {
 }
 
 type SyntheticRequest struct {
-	SourceSHA256 string
 	Started      time.Time
 	Finished     time.Time
 	InputTokens  int64
@@ -92,10 +91,6 @@ func (p *SyntheticProvider) Close() {
 	}
 }
 
-func (p *SyntheticProvider) RequestCount() int {
-	return p.Snapshot().Attempts
-}
-
 func (p *SyntheticProvider) Snapshot() MeterSnapshot {
 	p.mu.Lock()
 	defer p.mu.Unlock()
@@ -133,21 +128,13 @@ func (p *SyntheticProvider) handle(w http.ResponseWriter, request *http.Request)
 		http.Error(w, "synthetic model mismatch", http.StatusBadRequest)
 		return
 	}
-	var item LoadedCase
-	found := false
-	for _, candidate := range p.cases {
-		if candidate.SourceSHA256 == hashBytes([]byte(input.State)) {
-			if string(candidate.SourceBytes) != input.State {
-				http.Error(w, "synthetic state mismatch", http.StatusBadRequest)
-				return
-			}
-			item = candidate
-			found = true
-			break
-		}
-	}
+	item, found := p.cases[hashBytes([]byte(input.State))]
 	if !found {
 		http.Error(w, "synthetic state is not a dataset source", http.StatusBadRequest)
+		return
+	}
+	if string(item.SourceBytes) != input.State {
+		http.Error(w, "synthetic state mismatch", http.StatusBadRequest)
 		return
 	}
 	expected := make(map[string]syntheticQuestion)
@@ -167,20 +154,20 @@ func (p *SyntheticProvider) handle(w http.ResponseWriter, request *http.Request)
 	}
 	answers := make(map[string]syntheticAnswer, len(input.Questions))
 	for code := range input.Questions {
-		score := 0.1
+		rule := findRule(p.catalog, code)
+		if rule == nil {
+			http.Error(w, "synthetic rule missing", http.StatusBadRequest)
+			return
+		}
+		score := *rule.Decision.PassBelow / 2
 		if code == item.Rule {
-			rule := findRule(p.catalog, code)
-			if rule == nil {
-				http.Error(w, "synthetic target rule missing", http.StatusBadRequest)
-				return
-			}
 			score = syntheticScore(*rule, item.Label)
 		}
 		answers[code] = syntheticAnswer{Type: "noul", Noul: score}
 	}
 	finished := time.Now()
 	p.mu.Lock()
-	p.requests = append(p.requests, SyntheticRequest{SourceSHA256: item.SourceSHA256, Started: started, Finished: finished, InputTokens: 64, OutputTokens: 16})
+	p.requests = append(p.requests, SyntheticRequest{Started: started, Finished: finished, InputTokens: 64, OutputTokens: 16})
 	p.mu.Unlock()
 	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(syntheticResponse{Model: p.model, Answers: answers, Usage: syntheticUsage{InputTokens: 64, OutputTokens: 16}})
@@ -200,7 +187,11 @@ func syntheticScore(rule rules.Rule, label Label) float64 {
 	failAtOrAbove := *rule.Decision.FailAtOrAbove
 	switch label {
 	case LabelViolation:
-		return failAtOrAbove + (1-failAtOrAbove)/2
+		score := failAtOrAbove + (1-failAtOrAbove)/2
+		if score < 0.9 {
+			return 0.9
+		}
+		return score
 	case LabelAmbiguous:
 		return (passBelow + failAtOrAbove) / 2
 	default:

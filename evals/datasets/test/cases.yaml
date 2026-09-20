@@ -1,7 +1,7 @@
 schema_version: 1
 dataset:
   name: jeff-gen-test
-  version: 1.0.0
+  version: 2.0.0
   split: test
   complete: true
 cases:
@@ -11,7 +11,7 @@ cases:
     label: clean
     difficulty: easy
     pair: test-gen001-recovery
-    rationale: recovery leaves the observable state and contract consistent
+    rationale: a failed read preserves the active state
     tags: [smoke]
     source:
       filename: gen001/recovery.go
@@ -22,153 +22,77 @@ cases:
     label: violation
     difficulty: easy
     pair: test-gen001-recovery
-    rationale: recovery leaves the observable state and contract consistent
+    rationale: a failed read clears the active state
     tags: [smoke]
     source:
       filename: gen001/recovery.go
       file: fixtures/test-gen001-recovery-violation.go.src
-  - id: test-gen002-state-clean
+  - id: test-gen002-mutation-clean
     rule: GEN002
     language: go
     label: clean
-    difficulty: medium
-    pair: test-gen002-state
-    rationale: valid states are enforced at the construction boundary
+    difficulty: hard
+    pair: test-gen002-mutation
+    rationale: rendering does not change delivery state
     tags: [smoke]
     source:
-      filename: gen002/state.go
-      file: fixtures/test-gen002-state-clean.go.src
-  - id: test-gen002-state-violation
+      filename: gen002/receipt.go
+      file: fixtures/test-gen002-mutation-clean.go.src
+  - id: test-gen002-mutation-violation
     rule: GEN002
     language: go
     label: violation
-    difficulty: medium
-    pair: test-gen002-state
-    rationale: valid states are enforced at the construction boundary
+    difficulty: hard
+    pair: test-gen002-mutation
+    rationale: rendering changes delivery state without advertising a send
     tags: [smoke]
     source:
-      filename: gen002/state.go
-      file: fixtures/test-gen002-state-violation.go.src
-  - id: test-gen003-module-clean
+      filename: gen002/receipt.go
+      file: fixtures/test-gen002-mutation-violation.go.src
+  - id: test-gen003-policy-clean
     rule: GEN003
     language: go
     label: clean
     difficulty: medium
-    pair: test-gen003-module
-    rationale: the module keeps application decisions separate from adapters
+    pair: test-gen003-policy
+    rationale: quote and invoice reuse one fee policy
     tags: [smoke]
     source:
-      filename: gen003/module.go
-      file: fixtures/test-gen003-module-clean.go.src
-  - id: test-gen003-module-violation
+      filename: gen003/fee.go
+      file: fixtures/test-gen003-policy-clean.go.src
+  - id: test-gen003-policy-violation
     rule: GEN003
     language: go
     label: violation
     difficulty: medium
-    pair: test-gen003-module
-    rationale: the module keeps application decisions separate from adapters
+    pair: test-gen003-policy
+    rationale: quote and invoice duplicate one fee policy
     tags: [smoke]
     source:
-      filename: gen003/module.go
-      file: fixtures/test-gen003-module-violation.go.src
-  - id: test-gen004-mutation-clean
+      filename: gen003/fee.go
+      file: fixtures/test-gen003-policy-violation.go.src
+  - id: test-gen004-interface-clean
     rule: GEN004
     language: go
     label: clean
-    difficulty: hard
-    pair: test-gen004-mutation
-    rationale: callers can see the persistence effect from the method contract
+    difficulty: easy
+    pair: test-gen004-interface
+    rationale: parsing a numeric string returns its numeric value
     tags: [smoke]
     source:
-      filename: gen004/mutation.go
-      file: fixtures/test-gen004-mutation-clean.go.src
-  - id: test-gen004-mutation-violation
+      filename: gen004/parse.go
+      file: fixtures/test-gen004-interface-clean.go.src
+  - id: test-gen004-interface-violation
     rule: GEN004
     language: go
     label: violation
-    difficulty: hard
-    pair: test-gen004-mutation
-    rationale: callers can see the persistence effect from the method contract
-    tags: [smoke]
-    source:
-      filename: gen004/mutation.go
-      file: fixtures/test-gen004-mutation-violation.go.src
-  - id: test-gen005-lifecycle-clean
-    rule: GEN005
-    language: go
-    label: clean
-    difficulty: hard
-    pair: test-gen005-lifecycle
-    rationale: lifecycle transitions are guarded and cleanup is ordered
-    tags: [smoke]
-    source:
-      filename: gen005/lifecycle.go
-      file: fixtures/test-gen005-lifecycle-clean.go.src
-  - id: test-gen005-lifecycle-violation
-    rule: GEN005
-    language: go
-    label: violation
-    difficulty: hard
-    pair: test-gen005-lifecycle
-    rationale: lifecycle transitions are guarded and cleanup is ordered
-    tags: [smoke]
-    source:
-      filename: gen005/lifecycle.go
-      file: fixtures/test-gen005-lifecycle-violation.go.src
-  - id: test-gen006-policy-clean
-    rule: GEN006
-    language: go
-    label: clean
-    difficulty: medium
-    pair: test-gen006-policy
-    rationale: the policy is represented once and reused by both branches
-    tags: [smoke]
-    source:
-      filename: gen006/policy.go
-      file: fixtures/test-gen006-policy-clean.go.src
-  - id: test-gen006-policy-violation
-    rule: GEN006
-    language: go
-    label: violation
-    difficulty: medium
-    pair: test-gen006-policy
-    rationale: the policy is represented once and reused by both branches
-    tags: [smoke]
-    source:
-      filename: gen006/policy.go
-      file: fixtures/test-gen006-policy-violation.go.src
-  - id: test-gen007-interface-clean
-    rule: GEN007
-    language: go
-    label: clean
     difficulty: easy
-    pair: test-gen007-interface
-    rationale: the interface name accurately describes the result it returns
+    pair: test-gen004-interface
+    rationale: parsing a numeric string returns its text length
     tags: [smoke]
     source:
-      filename: gen007/interface.go
-      file: fixtures/test-gen007-interface-clean.go.src
-  - id: test-gen007-interface-violation
-    rule: GEN007
-    language: go
-    label: violation
-    difficulty: easy
-    pair: test-gen007-interface
-    rationale: the interface name accurately describes the result it returns
-    tags: [smoke]
-    source:
-      filename: gen007/interface.go
-      file: fixtures/test-gen007-interface-violation.go.src
-  - id: test-gen001-ambiguous
-    rule: GEN001
-    language: go
-    label: ambiguous
-    difficulty: hard
-    rationale: the example intentionally does not support a binary gold label
-    tags: [smoke]
-    source:
-      filename: gen001/uncertain.go
-      file: fixtures/test-gen001-ambiguous.go.src
+      filename: gen004/parse.go
+      file: fixtures/test-gen004-interface-violation.go.src
   - id: test-gen001-not-applicable
     rule: GEN001
     language: markdown
@@ -179,3 +103,113 @@ cases:
     source:
       filename: gen001/readme.md
       file: fixtures/test-gen001-not-applicable.md.src
+  - id: test-gen001-remote-import-clean
+    rule: GEN001
+    language: python
+    label: clean
+    difficulty: hard
+    pair: test-gen001-remote-import
+    rationale: the completion marker is written only after the remote import succeeds
+    tags: [smoke, candidate]
+    source:
+      filename: gen001/remote_import.py
+      file: fixtures/test-gen001-remote-import-clean.py.src
+  - id: test-gen001-remote-import-violation
+    rule: GEN001
+    language: python
+    label: violation
+    difficulty: hard
+    pair: test-gen001-remote-import
+    rationale: the completion marker is written before a failed remote import can be retried
+    tags: [smoke, candidate]
+    source:
+      filename: gen001/remote_import.py
+      file: fixtures/test-gen001-remote-import-violation.py.src
+  - id: test-gen001-restore-clean
+    rule: GEN001
+    language: bash
+    label: clean
+    difficulty: hard
+    pair: test-gen001-restore
+    rationale: a failed copy leaves the live database untouched
+    tags: [candidate]
+    source:
+      filename: gen001/restore_state.sh
+      file: fixtures/test-gen001-restore-clean.sh.src
+  - id: test-gen001-restore-violation
+    rule: GEN001
+    language: bash
+    label: violation
+    difficulty: hard
+    pair: test-gen001-restore
+    rationale: deleting the live database before a failed copy loses the previous state
+    tags: [candidate]
+    source:
+      filename: gen001/restore_state.sh
+      file: fixtures/test-gen001-restore-violation.sh.src
+  - id: test-gen002-pdf-context-clean
+    rule: GEN002
+    language: python
+    label: clean
+    difficulty: hard
+    pair: test-gen002-pdf-context
+    rationale: rendering reads a receipt without changing delivery state
+    tags: [candidate]
+    source:
+      filename: gen002/receipt.py
+      file: fixtures/test-gen002-pdf-context-clean.py.src
+  - id: test-gen002-pdf-context-violation
+    rule: GEN002
+    language: python
+    label: violation
+    difficulty: hard
+    pair: test-gen002-pdf-context
+    rationale: rendering changes delivery state without advertising a send
+    tags: [candidate]
+    source:
+      filename: gen002/receipt.py
+      file: fixtures/test-gen002-pdf-context-violation.py.src
+  - id: test-gen003-placement-policy-clean
+    rule: GEN003
+    language: python
+    label: clean
+    difficulty: medium
+    pair: test-gen003-placement-policy
+    rationale: API and worker reuse one retention policy
+    tags: [candidate]
+    source:
+      filename: gen003/retention.py
+      file: fixtures/test-gen003-placement-policy-clean.py.src
+  - id: test-gen003-placement-policy-violation
+    rule: GEN003
+    language: python
+    label: violation
+    difficulty: medium
+    pair: test-gen003-placement-policy
+    rationale: API and worker independently duplicate one retention policy
+    tags: [candidate]
+    source:
+      filename: gen003/retention.py
+      file: fixtures/test-gen003-placement-policy-violation.py.src
+  - id: test-gen004-export-signature-clean
+    rule: GEN004
+    language: python
+    label: clean
+    difficulty: medium
+    pair: test-gen004-export-signature
+    rationale: the collection-returning interface returns a collection
+    tags: [candidate, boundary]
+    source:
+      filename: gen004/records.py
+      file: fixtures/test-gen004-export-signature-clean.py.src
+  - id: test-gen004-export-signature-violation
+    rule: GEN004
+    language: python
+    label: violation
+    difficulty: medium
+    pair: test-gen004-export-signature
+    rationale: the collection-returning interface returns one record instead of the declared collection
+    tags: [candidate, boundary]
+    source:
+      filename: gen004/records.py
+      file: fixtures/test-gen004-export-signature-violation.py.src

@@ -206,7 +206,7 @@ func TestConfigAndThresholdValidation(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if config.Repetitions != 1 || config.Concurrency != 1 || config.Pricing.InputUSDPerMillion == nil || *config.Pricing.InputUSDPerMillion != 0.042 {
+	if config.Repetitions != 1 || config.Pricing.InputUSDPerMillion == nil || *config.Pricing.InputUSDPerMillion != 0.042 {
 		t.Fatalf("config defaults = %#v", config)
 	}
 	raw, err := os.ReadFile(configPath)
@@ -214,11 +214,11 @@ func TestConfigAndThresholdValidation(t *testing.T) {
 		t.Fatal(err)
 	}
 	unknownPath := filepath.Join(t.TempDir(), "config.yaml")
-	if err := os.WriteFile(unknownPath, append(raw, []byte("\nunknown: true\n")...), 0o644); err != nil {
+	if err := os.WriteFile(unknownPath, append(raw, []byte("\nconcurrency: 1\n")...), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := LoadConfig(unknownPath); err == nil {
-		t.Fatal("unknown config field unexpectedly accepted")
+		t.Fatal("inert concurrency setting unexpectedly accepted")
 	}
 	invalid := config
 	invalid.Repetitions = 0
@@ -234,11 +234,11 @@ func TestConfigAndThresholdValidation(t *testing.T) {
 		t.Fatal(err)
 	}
 	pass, fail := 0.1, 0.9
-	override, err := EffectiveThresholds(catalog, map[string]Threshold{"GEN007": {PassBelow: &pass, FailAtOrAbove: &fail}})
+	override, err := EffectiveThresholds(catalog, map[string]Threshold{"GEN004": {PassBelow: &pass, FailAtOrAbove: &fail}})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if base["GEN007"] == override["GEN007"] {
+	if base["GEN004"] == override["GEN004"] {
 		t.Fatal("threshold override did not change effective value")
 	}
 	if _, err := EffectiveThresholds(catalog, map[string]Threshold{"NOPE": {PassBelow: &pass, FailAtOrAbove: &fail}}); err == nil {

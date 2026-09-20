@@ -1,12 +1,7 @@
 schema_version: 1
 model: jev-1.13.0
 repetitions: 1
-concurrency: 1
 limits:
-  manifest_bytes: 1048576
-  config_bytes: 65536
-  source_bytes: 65536
-  cases: 1000
   request_bytes: 1048576
   response_bytes: 1048577
   stdout_bytes: 1048576

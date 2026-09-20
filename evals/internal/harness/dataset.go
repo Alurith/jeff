@@ -87,12 +87,6 @@ type Dataset struct {
 	Hash     string
 }
 
-type DatasetOptions struct {
-	MaxManifestBytes int64
-	MaxSourceBytes   int64
-	MaxCases         int
-}
-
 type DatasetSuite struct {
 	Datasets []Dataset
 	Hash     string
@@ -101,16 +95,11 @@ type DatasetSuite struct {
 var safeIDPattern = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._-]*$`)
 
 func LoadDataset(filename string) (Dataset, error) {
-	return LoadDatasetWithOptions(filename, DatasetOptions{})
-}
-
-func LoadDatasetWithOptions(filename string, options DatasetOptions) (Dataset, error) {
-	options = options.withDefaults()
 	manifestPath, err := cleanRegularPath(filename)
 	if err != nil {
 		return Dataset{}, fmt.Errorf("dataset: %w", err)
 	}
-	data, err := readBoundedFile(manifestPath, options.MaxManifestBytes)
+	data, err := readBoundedFile(manifestPath, DefaultManifestBytes)
 	if err != nil {
 		return Dataset{}, fmt.Errorf("dataset %s: %w", filename, err)
 	}
@@ -118,7 +107,7 @@ func LoadDatasetWithOptions(filename string, options DatasetOptions) (Dataset, e
 	if err := decodeStrict(data, filename, &manifest); err != nil {
 		return Dataset{}, err
 	}
-	if err := validateManifestMetadata(manifest, options.MaxCases); err != nil {
+	if err := validateManifestMetadata(manifest); err != nil {
 		return Dataset{}, fmt.Errorf("dataset %s: %w", filename, err)
 	}
 
@@ -145,7 +134,7 @@ func LoadDatasetWithOptions(filename string, options DatasetOptions) (Dataset, e
 		if err := validateAllowedActivations(item, catalogRules); err != nil {
 			return Dataset{}, fmt.Errorf("dataset %s: %w", filename, err)
 		}
-		source, err := loadSource(filepath.Dir(manifestPath), item.Source, options.MaxSourceBytes)
+		source, err := loadSource(filepath.Dir(manifestPath), item.Source)
 		if err != nil {
 			return Dataset{}, fmt.Errorf("dataset %s: case %q: %w", filename, item.ID, err)
 		}
@@ -253,20 +242,7 @@ func MaterializeCase(root string, item LoadedCase) (string, error) {
 	return destination, nil
 }
 
-func (o DatasetOptions) withDefaults() DatasetOptions {
-	if o.MaxManifestBytes <= 0 {
-		o.MaxManifestBytes = DefaultManifestBytes
-	}
-	if o.MaxSourceBytes <= 0 {
-		o.MaxSourceBytes = DefaultSourceBytes
-	}
-	if o.MaxCases <= 0 {
-		o.MaxCases = DefaultCaseCount
-	}
-	return o
-}
-
-func validateManifestMetadata(manifest DatasetManifest, maxCases int) error {
+func validateManifestMetadata(manifest DatasetManifest) error {
 	if manifest.SchemaVersion != DatasetSchemaVersion {
 		return fmt.Errorf("schema_version must be %d", DatasetSchemaVersion)
 	}
@@ -282,8 +258,8 @@ func validateManifestMetadata(manifest DatasetManifest, maxCases int) error {
 	if len(manifest.Cases) == 0 {
 		return fmt.Errorf("cases must not be empty")
 	}
-	if len(manifest.Cases) > maxCases {
-		return fmt.Errorf("cases exceeds limit %d", maxCases)
+	if len(manifest.Cases) > DefaultCaseCount {
+		return fmt.Errorf("cases exceeds limit %d", DefaultCaseCount)
 	}
 	return nil
 }
@@ -410,7 +386,7 @@ func validatePairs(manifest DatasetManifest, cases []LoadedCase) error {
 	return nil
 }
 
-func loadSource(baseDir string, source Source, maxBytes int64) ([]byte, error) {
+func loadSource(baseDir string, source Source) ([]byte, error) {
 	if (source.File == nil) == (source.Inline == nil) {
 		return nil, fmt.Errorf("source must contain exactly one of file or inline")
 	}
@@ -424,14 +400,14 @@ func loadSource(baseDir string, source Source, maxBytes int64) ([]byte, error) {
 		if err := ensureNoSymlinkPath(baseDir, filename); err != nil {
 			return nil, err
 		}
-		data, err = readBoundedFile(filename, maxBytes)
+		data, err = readBoundedFile(filename, DefaultSourceBytes)
 		if err != nil {
 			return nil, fmt.Errorf("read source file: %w", err)
 		}
 	} else {
 		data = []byte(*source.Inline)
-		if int64(len(data)) > maxBytes {
-			return nil, fmt.Errorf("inline source exceeds limit %d", maxBytes)
+		if len(data) > DefaultSourceBytes {
+			return nil, fmt.Errorf("inline source exceeds limit %d", DefaultSourceBytes)
 		}
 	}
 	if !utf8.Valid(data) {

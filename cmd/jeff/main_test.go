@@ -17,7 +17,7 @@ import (
 	"jeff/internal/credentials"
 )
 
-const cliRuleCount = 7
+const cliRuleCount = 4
 
 type jsonResult struct {
 	Checks []struct {
@@ -221,7 +221,7 @@ func TestRunUsesProjectConfigForSourcesOutputAndCache(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(root, "jeff.toml"), []byte("src = [\"src\"]\noutput-format = \"json\"\ncache-dir = \"custom-cache\"\njev-version = \"jev-2.0.0\"\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	server := noulServer(0.1)
+	server := noulServer(0.01)
 	defer server.Close()
 	t.Setenv("TYPESAFE_API_KEY", "test-key")
 	t.Setenv("TYPESAFE_BASE_URL", server.URL)
@@ -286,7 +286,7 @@ func TestRunAcceptsFlagsAfterPaths(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(root, "jeff.toml"), nil, 0o644); err != nil {
 		t.Fatal(err)
 	}
-	server := noulServer(0.1)
+	server := noulServer(0.01)
 	defer server.Close()
 	t.Setenv("TYPESAFE_API_KEY", "test-key")
 	t.Setenv("TYPESAFE_BASE_URL", server.URL)
@@ -371,7 +371,7 @@ jev-version = "jev-2.0.0"
 		requests.Add(1)
 		answers := make(map[string]map[string]any, len(request.Questions))
 		for code := range request.Questions {
-			answers[code] = map[string]any{"type": "noul", "noul": 0.1}
+			answers[code] = map[string]any{"type": "noul", "noul": 0.01}
 		}
 		w.Header().Set("Content-Type", "application/json")
 		_ = json.NewEncoder(w).Encode(struct {
@@ -428,7 +428,7 @@ func TestRunExitCodes(t *testing.T) {
 		noul float64
 		exit int
 	}{
-		"pass":         {noul: 0.1, exit: 0},
+		"pass":         {noul: 0.01, exit: 0},
 		"violation":    {noul: 0.9, exit: 1},
 		"inconclusive": {noul: 0.5, exit: 2},
 	} {
@@ -449,8 +449,23 @@ func TestRunExitCodes(t *testing.T) {
 				t.Fatalf("exit = %d, want %d", exit, test.exit)
 			}
 			result := decodeJSONResult(t, stdout.Bytes())
-			if len(result.Checks) != cliRuleCount || result.Checks[0].Status != name || result.Checks[1].Status != name {
+			if len(result.Checks) != cliRuleCount {
 				t.Fatalf("result = %#v", result)
+			}
+			if name != "inconclusive" && (result.Checks[0].Status != name || result.Checks[1].Status != name) {
+				t.Fatalf("result = %#v", result)
+			}
+			if name == "inconclusive" {
+				found := false
+				for _, check := range result.Checks {
+					if check.Status == name {
+						found = true
+						break
+					}
+				}
+				if !found {
+					t.Fatalf("result = %#v", result)
+				}
 			}
 			if stderr.Len() != 0 {
 				t.Fatalf("stderr = %q", stderr.String())

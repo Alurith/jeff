@@ -1,3 +1,0 @@
-package holdoutgen004
-
-func holdoutGen004Clean() {}

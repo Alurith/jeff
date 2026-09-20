@@ -1,0 +1,5 @@
+package testgen006
+
+func ParseNumber(value string) (int, error) {
+	return len(value), nil
+}

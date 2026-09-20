@@ -1,4 +1,0 @@
-package testgen006
-
-func create(value string) bool { return len(value) > 0 }
-func update(value string) bool { return len(value) >= 2 }

@@ -1,0 +1,6 @@
+class RecordStore:
+    def __init__(self, records: tuple[str, ...]):
+        self.records = records
+
+    def fetch_all(self) -> list[str]:
+        return list(self.records[:1])

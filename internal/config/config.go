@@ -19,7 +19,6 @@ const (
 )
 
 type Settings struct {
-	Path         string
 	RuleFiles    []string
 	Exclude      []string
 	Include      []string
@@ -59,7 +58,6 @@ func Load(root, explicitPath string) (Settings, error) {
 	if err != nil {
 		return settings, fmt.Errorf("read config %s: %w", path, err)
 	}
-	settings.Path = path
 	if format := outputFormatHint(data); format != "" {
 		settings.OutputFormat = format
 	}

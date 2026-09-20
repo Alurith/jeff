@@ -19,12 +19,6 @@ type Store struct {
 	disabled  bool
 }
 
-type Entry struct {
-	SchemaVersion int     `json:"schema_version"`
-	Model         string  `json:"model"`
-	Noul          float64 `json:"noul"`
-}
-
 type storedEntry struct {
 	SchemaVersion int      `json:"schema_version"`
 	Model         string   `json:"model"`
@@ -48,23 +42,23 @@ func New(directory string, disabled bool) Store {
 	return Store{directory: directory, disabled: disabled}
 }
 
-func (s Store) Get(model, state string, question typesafe.Question) (Entry, bool) {
+func (s Store) Get(model, state string, question typesafe.Question) (float64, bool) {
 	if s.disabled {
-		return Entry{}, false
+		return 0, false
 	}
 	key, err := key(model, state, question)
 	if err != nil {
-		return Entry{}, false
+		return 0, false
 	}
 	data, err := os.ReadFile(filepath.Join(s.directory, key+".json"))
 	if err != nil {
-		return Entry{}, false
+		return 0, false
 	}
 	var stored storedEntry
 	if err := json.Unmarshal(data, &stored); err != nil || stored.SchemaVersion != protocolVersion || stored.Model != model || stored.Noul == nil || *stored.Noul < 0 || *stored.Noul > 1 || math.IsNaN(*stored.Noul) || math.IsInf(*stored.Noul, 0) {
-		return Entry{}, false
+		return 0, false
 	}
-	return Entry{SchemaVersion: stored.SchemaVersion, Model: stored.Model, Noul: *stored.Noul}, true
+	return *stored.Noul, true
 }
 
 func (s Store) Put(model, state string, question typesafe.Question, noul float64) error {
@@ -84,7 +78,7 @@ func (s Store) Put(model, state string, question typesafe.Question, noul float64
 	if err := ensureGitignore(s.directory); err != nil {
 		return err
 	}
-	data, err := json.Marshal(Entry{SchemaVersion: protocolVersion, Model: model, Noul: noul})
+	data, err := json.Marshal(storedEntry{SchemaVersion: protocolVersion, Model: model, Noul: &noul})
 	if err != nil {
 		return err
 	}

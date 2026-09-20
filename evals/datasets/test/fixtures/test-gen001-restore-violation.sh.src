@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+restore_database() {
+    local backup="$1"
+    local target="$2"
+    rm -f "$target"
+    cp "$backup" "$target"
+}
+
+restore_database "$1" "$2"

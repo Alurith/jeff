@@ -21,9 +21,9 @@ func TestStoreRoundTripAndInferenceKeyBoundaries(t *testing.T) {
 	if data, err := os.ReadFile(filepath.Join(directory, ".gitignore")); err != nil || string(data) != "*\n" {
 		t.Fatalf("cache gitignore = %q, error = %v", data, err)
 	}
-	entry, ok := store.Get("jev-1.13.0", "source", question)
-	if !ok || entry.Noul != 0.75 {
-		t.Fatalf("entry=%#v hit=%v", entry, ok)
+	noul, ok := store.Get("jev-1.13.0", "source", question)
+	if !ok || noul != 0.75 {
+		t.Fatalf("noul=%v hit=%v", noul, ok)
 	}
 	if _, ok := store.Get("jev-1.13.0", "changed", question); ok {
 		t.Fatal("state change reused cache")
@@ -73,8 +73,8 @@ func TestStoreAcceptsExplicitZeroNoul(t *testing.T) {
 	if err := store.Put("jev-1.13.0", "source", question, 0); err != nil {
 		t.Fatal(err)
 	}
-	entry, ok := store.Get("jev-1.13.0", "source", question)
-	if !ok || entry.Noul != 0 {
-		t.Fatalf("entry=%#v hit=%v", entry, ok)
+	noul, ok := store.Get("jev-1.13.0", "source", question)
+	if !ok || noul != 0 {
+		t.Fatalf("noul=%v hit=%v", noul, ok)
 	}
 }

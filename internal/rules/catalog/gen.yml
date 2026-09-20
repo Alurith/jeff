@@ -15,59 +15,35 @@ rules:
         - "**/vendor/**"
     question:
       type: noul
-      instructions: Judge the semantic consequences of errors, retries, cleanup, or rollback on state, output, or contracts, not error-handling syntax, unhandled err alone, TODO/stub/pass, or provisional-return patterns.
+      instructions: >-
+        Evaluate whether a reachable error, cancellation, or recovery path breaks
+        an intended postcondition visible in this file. Identify the failed
+        operation, the promised failure or recovery outcome, and the resulting
+        observable state, output, or subsequent retry behavior. Respect explicitly
+        allowed partial success and best-effort behavior. An unhandled error,
+        a catch block, or an error return alone is not evidence of a violation.
+        A non-nil error remains an error even if its message sounds successful.
+        Do not invent effects or guarantees of unspecified dependencies.
+        Exclude TODOs, stubs, placeholders, type/schema/range errors, and naming
+        style. If a concrete temporal execution is already incorrect without an
+        independent operation failing, keep it separate from this failure-path rule.
       criteria:
-        true: An error or recovery path can leave state, output, or a promised contract inconsistent after the path completes.
-        false: Failure and recovery paths preserve their intended state, output, and contracts, or the concern is only a deterministic or syntactic handling pattern.
+        "true": >-
+          A reachable failure or recovery path has a concrete observable outcome
+          that contradicts its intended postcondition, such as losing previously
+          usable state, reporting an uncompleted operation as completed, or
+          preventing a promised retry from performing the missing work.
+        "false": >-
+          No broken failure or recovery postcondition is evidenced; the failure
+          is propagated or contained consistently with the contract; partial
+          success is explicitly permitted; or the concern is only error-handling
+          syntax, an excluded deterministic issue, or an independent temporal
+          defect outside this failure-path rule.
     decision:
-      pass_below: 0.20
-      fail_at_or_above: 0.80
+      pass_below: 0.50
+      fail_at_or_above: 0.55
 
   - code: GEN002
-    name: contract-invariant-safety
-    message: A local contract or invariant may be semantically contradicted
-    scope: file
-    files:
-      include: ["**/*"]
-      exclude:
-        - "**/*.md"
-        - "**/*.txt"
-        - "**/.*"
-        - "**/.*/**"
-        - "**/vendor/**"
-    question:
-      type: noul
-      instructions: Judge contradictions in local contracts or invariants that remain type-valid, not type errors, schema or range checks, TODO/stub/pass, or provisional-return findings.
-      criteria:
-        true: The file can violate a stated or inferable local contract or invariant while remaining valid according to its types and schema.
-        false: No semantic contract or invariant contradiction is evident, or the concern is only a deterministic type, schema, range, or placeholder check.
-    decision:
-      pass_below: 0.20
-      fail_at_or_above: 0.80
-
-  - code: GEN003
-    name: mixed-responsibility-boundary-mixing
-    message: Independent responsibilities or domain and infrastructure concerns are semantically entangled
-    scope: file
-    files:
-      include: ["**/*"]
-      exclude:
-        - "**/*.md"
-        - "**/*.txt"
-        - "**/.*"
-        - "**/.*/**"
-        - "**/vendor/**"
-    question:
-      type: noul
-      instructions: Judge conceptual boundary mixing only when it harms understanding or modification, not file size, import count, or the mere presence of I/O.
-      criteria:
-        true: Conceptually independent responsibilities, or domain and infrastructure concerns, are intertwined in a way that materially harms understanding or modification.
-        false: The file has coherent conceptual boundaries, or the concern is only size, imports, I/O, coverage, or missing tests.
-    decision:
-      pass_below: 0.20
-      fail_at_or_above: 0.80
-
-  - code: GEN004
     name: side-effect-transparency
     message: A relevant side effect may surprise callers of the interface
     scope: file
@@ -81,37 +57,33 @@ rules:
         - "**/vendor/**"
     question:
       type: noul
-      instructions: Judge whether an observable side effect is hidden by the name, signature, or interface, not the mere presence of I/O or mutation.
+      instructions: >-
+        Evaluate whether an operation adds a relevant caller-visible or external
+        effect that its name, signature, documentation, and visible usage do not
+        reasonably communicate. Identify both the expected primary operation and
+        the concrete additional mutation, persistence, deletion, messaging,
+        network, or process effect. A primary result may be correct while the
+        additional effect is surprising. Receiving a mutable object or database
+        connection does not by itself advertise every possible mutation.
+        Do not report effects merely because they exist, explicitly advertised
+        writes, or incidental internal bookkeeping without a meaningful observable
+        consequence. Exclude stubs, placeholders, deterministic validity errors,
+        failure-only defects, temporal-only defects, and contradictions of the
+        primary result better covered by the naming/behavior rule.
       criteria:
-        true: A relevant mutation, persistence, deletion, network, messaging, or similar effect is not reasonably signaled by the surrounding interface.
-        false: Relevant effects are absent or apparent from the interface, or the concern is only that I/O or mutation exists.
+        "true": >-
+          A reachable call performs a concrete, relevant additional effect on
+          caller-owned or externally observable state that a reasonable caller
+          would not expect from the visible interface and usage.
+        "false": >-
+          Relevant effects are absent, reasonably advertised, or merely incidental
+          internal implementation details; or the concern is only I/O presence,
+          mutation presence, a different GEN category, or naming style.
     decision:
       pass_below: 0.20
-      fail_at_or_above: 0.80
+      fail_at_or_above: 0.60
 
-  - code: GEN005
-    name: temporal-control-flow-fragility
-    message: Correctness may depend on an unprotected temporal or control-flow condition
-    scope: file
-    files:
-      include: ["**/*"]
-      exclude:
-        - "**/*.md"
-        - "**/*.txt"
-        - "**/.*"
-        - "**/.*/**"
-        - "**/vendor/**"
-    question:
-      type: noul
-      instructions: Judge semantic dependence on order, lifecycle, retry, synchronization, resource closure, commit, interleaving, or state history, not complexity metrics, unreachable code, or mechanical race checks.
-      criteria:
-        true: Correct behavior depends on an unprotected ordering, lifecycle, retry, lock, close, commit, interleaving, or state-history condition.
-        false: Relevant temporal conditions are enforced or explicit, or the concern is only complexity, nesting, branch count, unreachable code, or a mechanical race finding.
-    decision:
-      pass_below: 0.20
-      fail_at_or_above: 0.80
-
-  - code: GEN006
+  - code: GEN003
     name: within-file-semantic-duplication
     message: A domain decision or invariant is semantically duplicated within the file
     scope: file
@@ -125,15 +97,33 @@ rules:
         - "**/vendor/**"
     question:
       type: noul
-      instructions: Judge repeated domain policy, decisions, or invariants with divergence risk, not textual, AST, clone, test, or boilerplate duplication.
+      instructions: >-
+        Evaluate an advisory maintainability concern, not necessarily a current
+        runtime bug. Require at least two independent implementations within this
+        file of the same non-trivial domain policy, business decision, or invariant.
+        Establish shared semantic ownership from the visible domain contract and
+        usage, not merely matching syntax or suggestive names. Identify a concrete
+        policy change that would require coordinated edits and could leave the
+        implementations deciding differently. Current outputs may agree.
+        Exclude trivial predicates, range checks, repeated constants, boilerplate,
+        plumbing, tests, representation mappings, and distinct policies that merely
+        look similar. Calls to one shared decision point are not independent
+        implementations. Do not infer duplication across files.
       criteria:
-        true: The same meaningful domain policy, decision, or invariant is implemented in separate places and can diverge.
-        false: Repetition does not duplicate semantic knowledge, or the concern is only textual, structural, clone, test, or boilerplate duplication.
+        "true": >-
+          Two or more independent implementations encode the same meaningful
+          non-trivial domain decision, and a concrete change to that policy would
+          require coordinated edits to prevent divergent decisions.
+        "false": >-
+          The policy has one authoritative implementation reused by callers;
+          shared semantic ownership is not established; the repetition is trivial,
+          structural, or infrastructural; or the implementations represent
+          different domain policies.
     decision:
-      pass_below: 0.20
-      fail_at_or_above: 0.80
+      pass_below: 0.10
+      fail_at_or_above: 0.40
 
-  - code: GEN007
+  - code: GEN004
     name: concrete-naming-behavior-mismatch
     message: A concrete name, signature, or interface may contradict observable behavior
     scope: file
@@ -147,10 +137,28 @@ rules:
         - "**/vendor/**"
     question:
       type: noul
-      instructions: Judge concrete contradictions between names or interfaces and observable behavior, excluding naming style and discrepancies caused only by hidden side effects.
+      instructions: >-
+        Evaluate direct contradictions between an operation's primary observable
+        behavior and a specific promise made by its concrete name or interface.
+        Identify what a reasonable caller would rely on and a valid input for
+        which the implementation does something materially different. Examples
+        include parsing a value versus measuring its text, returning all records
+        versus truncating them, or a specifically promised ordering being reversed.
+        Keep the evidence valid under declared types and schemas: returning a
+        different runtime type from an annotation is a deterministic validity
+        issue, not this rule. Do not infer a promise from naming fashion, vague
+        intent, or a preferred signature convention alone. Exclude stubs,
+        placeholders, range errors, failure-only defects, temporal defects, and
+        contradictions caused solely by additional hidden effects covered by the side-effect rule.
       criteria:
-        true: A reasonable caller would infer behavior from a concrete name, signature, or interface that the file observably violates.
-        false: Names and interfaces match observable behavior, or the concern is only naming convention, style, or a hidden side effect covered by GEN004.
+        "true": >-
+          A concrete caller-facing promise is materially contradicted by the
+          primary behavior on a valid input, and the contradiction is observable
+          without relying on type/schema errors, naming style, or hidden effects.
+        "false": >-
+          The primary behavior matches the concrete promise, no sufficiently
+          specific promise is established, or the concern is only a deterministic
+          validity issue, a naming preference, or another GEN category.
     decision:
-      pass_below: 0.20
-      fail_at_or_above: 0.80
+      pass_below: 0.25
+      fail_at_or_above: 0.50

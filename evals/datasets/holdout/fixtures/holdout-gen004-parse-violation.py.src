@@ -1,0 +1,2 @@
+def parse_number(value: str) -> tuple[int, str | None]:
+    return len(value), None

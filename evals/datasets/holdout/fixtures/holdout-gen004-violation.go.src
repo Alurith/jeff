@@ -1,4 +1,0 @@
-package holdoutgen004
-
-func holdoutGen004Violation() {}
-var holdoutGen004Value = 4

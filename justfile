@@ -1,5 +1,3 @@
-alias cleanup := clean
-
 default:
     @just --list
 

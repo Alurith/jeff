@@ -19,7 +19,7 @@ func TestBaselineCompatibilityAndRegression(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !comparison.Compatible || !comparison.Passed || len(comparison.Regressions) != 0 {
+	if !comparison.Passed || len(comparison.Regressions) != 0 {
 		t.Fatalf("comparison = %#v", comparison)
 	}
 
@@ -102,7 +102,7 @@ func baselineFixture(t *testing.T) RunResults {
 	return RunResults{
 		SchemaVersion:  ResultsSchemaVersion,
 		MetricsVersion: 1,
-		Metadata:       RunMetadata{DatasetHash: "dataset", DatasetName: "test", DatasetVersion: "1.0.0", Split: "test", SelectionHash: "selection", Profile: "smoke", Provider: "synthetic", Model: "jev-1.13.0", Repetitions: 1, BinarySHA256: "binary", CatalogHash: "catalog", ConfigHash: "config", EffectiveThresholdHash: "thresholds", Concurrency: 1, WorktreeDirty: false},
+		Metadata:       RunMetadata{DatasetHash: "dataset", DatasetName: "test", DatasetVersion: "1.0.0", Split: "test", SelectionHash: "selection", Profile: "smoke", Provider: "synthetic", Model: "jev-1.13.0", Repetitions: 1, BinarySHA256: "binary", CatalogHash: "catalog", ConfigHash: "config", EffectiveThresholdHash: "thresholds", WorktreeDirty: false},
 		Cases: []CaseResult{
 			{CaseID: "clean", Rule: "GEN001", Label: LabelClean, Pair: "pair", Repetition: 1, TargetStatus: "pass", TargetNoul: floatPtr(0.1), ProcessValid: true},
 			{CaseID: "violation", Rule: "GEN001", Label: LabelViolation, Pair: "pair", Repetition: 1, TargetStatus: "violation", TargetNoul: floatPtr(0.9), ProcessValid: true},
