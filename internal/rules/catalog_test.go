@@ -31,6 +31,11 @@ func TestLoadEmbeddedCatalog(t *testing.T) {
 	if catalog.Rules[0].Applies("README.md") {
 		t.Fatal("Go selector matched a Markdown file")
 	}
+	for _, filename := range []string{"id_rsa.pem", "config.yaml", "data.json", "jeff.toml", ".env", ".config/main.go"} {
+		if catalog.Rules[0].Applies(filename) {
+			t.Fatalf("embedded rule matched non-source file %q", filename)
+		}
+	}
 }
 
 func TestLoadExternalCatalogAndModelOverride(t *testing.T) {
@@ -43,7 +48,8 @@ rules:
     scope: file
     files:
       include:
-        - "**/*.go"
+        - "**/*"
+      allow-non-source: true
     question:
       type: noul
       instructions: The file satisfies the custom condition.
@@ -61,6 +67,9 @@ rules:
 	}
 	if catalog.Model != "jev-2.0.0" || len(catalog.Rules) != 8 || catalog.Rules[len(catalog.Rules)-1].Code != "TEAM001" {
 		t.Fatalf("catalog = %#v", catalog)
+	}
+	if !catalog.Rules[len(catalog.Rules)-1].Applies("config.yaml") {
+		t.Fatal("external rule did not opt into non-source files")
 	}
 }
 

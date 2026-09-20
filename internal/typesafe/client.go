@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"math/rand"
+	"net"
 	"net/http"
 	"net/url"
 	"strings"
@@ -107,6 +108,9 @@ func NewClient(baseURL, apiKey string, httpClient *http.Client) (*Client, error)
 	if err != nil || parsed.Scheme == "" || parsed.Host == "" || (parsed.Scheme != "http" && parsed.Scheme != "https") {
 		return nil, fmt.Errorf("invalid TYPESAFE_BASE_URL")
 	}
+	if parsed.Scheme == "http" && !isLoopbackHost(parsed.Hostname()) {
+		return nil, fmt.Errorf("TYPESAFE_BASE_URL must use https; http is allowed only for loopback testing")
+	}
 	parsed.RawQuery = ""
 	parsed.Fragment = ""
 	if httpClient == nil {
@@ -126,6 +130,14 @@ func NewClient(baseURL, apiKey string, httpClient *http.Client) (*Client, error)
 		sleep:          sleepWithContext,
 		jitter:         jitterDuration,
 	}, nil
+}
+
+func isLoopbackHost(host string) bool {
+	if strings.EqualFold(host, "localhost") {
+		return true
+	}
+	ip := net.ParseIP(host)
+	return ip != nil && ip.IsLoopback()
 }
 
 func (c *Client) Evaluate(ctx context.Context, model, state string, questions map[string]Question) (Response, error) {

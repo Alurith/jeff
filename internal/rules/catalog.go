@@ -13,6 +13,7 @@ import (
 	"sort"
 	"strings"
 
+	"jeff/internal/files"
 	"jeff/internal/glob"
 
 	"gopkg.in/yaml.v3"
@@ -48,8 +49,9 @@ type Rule struct {
 }
 
 type Selectors struct {
-	Include []string `yaml:"include"`
-	Exclude []string `yaml:"exclude"`
+	Include        []string `yaml:"include"`
+	Exclude        []string `yaml:"exclude"`
+	AllowNonSource bool     `yaml:"allow-non-source"`
 }
 
 type Question struct {
@@ -287,6 +289,9 @@ func (r Rule) Applies(filename string) bool {
 		}
 	}
 	if !included {
+		return false
+	}
+	if !r.Files.AllowNonSource && !files.IsSourceFile(filename) {
 		return false
 	}
 	for _, pattern := range r.Files.Exclude {

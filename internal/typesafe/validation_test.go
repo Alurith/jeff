@@ -8,6 +8,26 @@ import (
 	"testing"
 )
 
+func TestNewClientAllowsLoopbackHTTP(t *testing.T) {
+	for _, baseURL := range []string{
+		"http://localhost:8099",
+		"http://127.0.0.1:8099",
+		"http://[::1]:8099",
+	} {
+		if _, err := NewClient(baseURL, "test-key", nil); err != nil {
+			t.Errorf("NewClient(%q) error = %v", baseURL, err)
+		}
+	}
+}
+
+func TestNewClientRejectsRemoteHTTP(t *testing.T) {
+	for _, baseURL := range []string{"http://example.com", "http://10.0.0.1:8099"} {
+		if _, err := NewClient(baseURL, "test-key", nil); err == nil {
+			t.Errorf("NewClient(%q) accepted non-loopback HTTP", baseURL)
+		}
+	}
+}
+
 func TestEvaluateRejectsInvalidResponsesWithoutRetry(t *testing.T) {
 	for name, test := range map[string]struct {
 		body string

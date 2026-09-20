@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/fs"
 	"os"
+	pathpkg "path"
 	"path/filepath"
 	"runtime"
 	"sort"
@@ -42,9 +43,48 @@ var DefaultExclude = []string{
 	".jeff-cache",
 }
 
+var sourceExtensions = map[string]struct{}{
+	".asm": {}, ".c": {}, ".cc": {}, ".clj": {}, ".cljs": {}, ".cpp": {},
+	".cs": {}, ".css": {}, ".cxx": {}, ".d": {}, ".dart": {}, ".ex": {},
+	".exs": {}, ".fs": {}, ".fsx": {}, ".go": {}, ".graphql": {}, ".gql": {},
+	".groovy": {}, ".h": {}, ".hh": {}, ".hpp": {}, ".hs": {}, ".htm": {},
+	".html": {}, ".java": {}, ".jl": {}, ".js": {}, ".jsx": {}, ".kt": {},
+	".kts": {}, ".lua": {}, ".m": {}, ".mm": {}, ".nim": {}, ".pas": {},
+	".php": {}, ".pl": {}, ".pm": {}, ".proto": {}, ".ps1": {}, ".py": {},
+	".r": {}, ".rb": {}, ".rs": {}, ".s": {}, ".scala": {}, ".sc": {},
+	".scss": {}, ".sh": {}, ".svelte": {}, ".sol": {}, ".sql": {}, ".swift": {},
+	".t": {}, ".ts": {}, ".tsx": {}, ".vb": {}, ".v": {}, ".vhd": {},
+	".vhdl": {}, ".vue": {}, ".zig": {},
+}
+
+var sourceFilenames = map[string]struct{}{
+	"build.bazel": {}, "containerfile": {}, "dockerfile": {}, "gemfile": {},
+	"jenkinsfile": {}, "justfile": {}, "makefile": {}, "procfile": {},
+	"rakefile": {}, "vagrantfile": {},
+}
+
 type Input struct {
 	Absolute string
 	Path     string
+}
+
+func IsSourceFile(filename string) bool {
+	filename = strings.TrimPrefix(filepath.ToSlash(filename), "./")
+	if filename == "" || filename == "." {
+		return false
+	}
+	parts := strings.Split(filename, "/")
+	for _, part := range parts {
+		if part == "" || part == "." || part == ".." || strings.HasPrefix(part, ".") || matchesAny(DefaultExclude, part) {
+			return false
+		}
+	}
+	base := parts[len(parts)-1]
+	if _, ok := sourceFilenames[strings.ToLower(base)]; ok {
+		return true
+	}
+	_, ok := sourceExtensions[strings.ToLower(pathpkg.Ext(base))]
+	return ok
 }
 
 type DiscoveryOptions struct {

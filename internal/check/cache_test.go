@@ -43,10 +43,15 @@ func TestRunUsesPerAnswerCacheBeforeCredentials(t *testing.T) {
 		t.Fatalf("cached run requests=%d result=%#v", requests.Load(), second)
 	}
 	entries, err := os.ReadDir(filepath.Join(root, ".jeff-cache", "v1"))
-	if err != nil || len(entries) != testRuleCount {
+	if err != nil {
 		t.Fatalf("cache entries=%v err=%v", entries, err)
 	}
+	jsonEntries := 0
 	for _, entry := range entries {
+		if filepath.Ext(entry.Name()) != ".json" {
+			continue
+		}
+		jsonEntries++
 		data, err := os.ReadFile(filepath.Join(root, ".jeff-cache", "v1", entry.Name()))
 		if err != nil {
 			t.Fatal(err)
@@ -54,6 +59,12 @@ func TestRunUsesPerAnswerCacheBeforeCredentials(t *testing.T) {
 		if bytes.Contains(data, []byte("package main")) {
 			t.Fatal("cache entry persisted source content")
 		}
+	}
+	if jsonEntries != testRuleCount {
+		t.Fatalf("cache JSON entries=%d, want %d", jsonEntries, testRuleCount)
+	}
+	if data, err := os.ReadFile(filepath.Join(root, ".jeff-cache", "v1", ".gitignore")); err != nil || string(data) != "*\n" {
+		t.Fatalf("cache gitignore = %q, error = %v", data, err)
 	}
 	third := Run(context.Background(), Options{Root: root, Paths: []string{"sample.go"}, BaseURL: server.URL, APIKey: "test-key", NoCache: true})
 	if len(third.Errors) != 0 || requests.Load() != 2 {

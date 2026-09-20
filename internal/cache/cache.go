@@ -81,6 +81,9 @@ func (s Store) Put(model, state string, question typesafe.Question, noul float64
 	if err := os.MkdirAll(s.directory, 0o700); err != nil {
 		return err
 	}
+	if err := ensureGitignore(s.directory); err != nil {
+		return err
+	}
 	data, err := json.Marshal(Entry{SchemaVersion: protocolVersion, Model: model, Noul: noul})
 	if err != nil {
 		return err
@@ -103,6 +106,27 @@ func (s Store) Put(model, state string, question typesafe.Question, noul float64
 		return err
 	}
 	return os.Rename(temporaryName, filepath.Join(s.directory, key+".json"))
+}
+
+func ensureGitignore(directory string) error {
+	filename := filepath.Join(directory, ".gitignore")
+	file, err := os.OpenFile(filename, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o600)
+	if os.IsExist(err) {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	if _, err := file.WriteString("*\n"); err != nil {
+		_ = file.Close()
+		_ = os.Remove(filename)
+		return err
+	}
+	if err := file.Close(); err != nil {
+		_ = os.Remove(filename)
+		return err
+	}
+	return nil
 }
 
 func key(model, state string, question typesafe.Question) (string, error) {

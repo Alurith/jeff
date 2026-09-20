@@ -9,13 +9,17 @@ import (
 )
 
 func TestStoreRoundTripAndInferenceKeyBoundaries(t *testing.T) {
-	store := New(filepath.Join(t.TempDir(), "v1"), false)
+	directory := filepath.Join(t.TempDir(), "v1")
+	store := New(directory, false)
 	question := typesafe.Question{Type: "noul", Instructions: "Is this true?"}
 	if _, ok := store.Get("jev-1.13.0", "source", question); ok {
 		t.Fatal("unexpected cache hit")
 	}
 	if err := store.Put("jev-1.13.0", "source", question, 0.75); err != nil {
 		t.Fatal(err)
+	}
+	if data, err := os.ReadFile(filepath.Join(directory, ".gitignore")); err != nil || string(data) != "*\n" {
+		t.Fatalf("cache gitignore = %q, error = %v", data, err)
 	}
 	entry, ok := store.Get("jev-1.13.0", "source", question)
 	if !ok || entry.Noul != 0.75 {

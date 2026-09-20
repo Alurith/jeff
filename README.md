@@ -19,7 +19,7 @@ jeff auth logout
 
 Set `TYPESAFE_API_KEY` or store a credential with `jeff auth login`. Stored credentials use the operating system's keyring; `jeff auth logout` removes the saved credential.
 
-Use `TYPESAFE_BASE_URL` to point to a compatible endpoint during testing.
+Use `TYPESAFE_BASE_URL` to point to a compatible HTTPS endpoint during testing. Plain HTTP is accepted only for localhost/loopback endpoints.
 
 ## Project configuration
 
@@ -35,9 +35,11 @@ output-format = "json"
 jev-version = "jev-1.13.0"
 ```
 
-`src` limits directory discovery when no paths are passed on the command line. `include` adds matching files outside those directories; `exclude` wins over it. Discovery patterns are positive globs (`*`, `?`, character classes, and `**`); negated `!` patterns are rejected. General exclusions (for example `.git`, `vendor`, `node_modules`, build and cache directories) are always active, and `.gitignore` is still respected. A path passed explicitly on the command line keeps the existing explicit-file behavior.
+`src` limits directory discovery when no paths are passed on the command line. `include` adds matching files outside those directories; `exclude` wins over it. Discovery patterns are positive globs (`*`, `?`, character classes, and `**`); negated `!` patterns are rejected. General exclusions (for example `.git`, `vendor`, `node_modules`, build and cache directories) are always active, and `.gitignore` is still respected. A path passed explicitly on the command line keeps discovery behavior, but the source-file safety filter still applies.
 
 `rule-files` loads external YAML rule fragments using the same schema as the embedded catalog. `JEFF_CACHE_DIR` overrides `cache-dir`; `--output-format` overrides the TOML value. The default output is `text` and the default cache is `.jeff-cache`.
+
+For privacy, rules apply by default only to recognized source files. Certificates and keys (`.pem`, `.key`, `.crt`), `.env`, YAML/YML, JSON, TOML, TFVars, Markdown/TXT, hidden paths, and default-excluded directories are not sent. An external YAML rule can explicitly set `allow-non-source: true` when it intentionally needs to inspect a non-source file.
 
 ## Current rules
 
@@ -73,5 +75,3 @@ Jeff is designed for both interactive CLI use and automation:
 - `0` means all applicable checks passed;
 - `1` means a conclusive check found a violation and no error occurred;
 - `2` means a usage, configuration, input, provider, internal, or inconclusive result.
-
-Jev reference documentation is available in [`docs/references/jev`](./docs/references/jev).

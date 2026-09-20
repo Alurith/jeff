@@ -6,6 +6,39 @@ import (
 	"testing"
 )
 
+func TestIsSourceFileUsesConservativeAllowlist(t *testing.T) {
+	for _, filename := range []string{
+		"main.go",
+		"scripts/check.py",
+		"src/app.ts",
+		"Dockerfile",
+		"Makefile",
+	} {
+		if !IsSourceFile(filename) {
+			t.Errorf("IsSourceFile(%q) = false, want true", filename)
+		}
+	}
+	for _, filename := range []string{
+		"id_rsa.pem",
+		"server.key",
+		"server.crt",
+		"config.yaml",
+		"config.yml",
+		"data.json",
+		"jeff.toml",
+		"secrets.tfvars",
+		".env",
+		".config/main.go",
+		"src/.generated.go",
+		"vendor/dependency.go",
+		"node_modules/package/index.js",
+	} {
+		if IsSourceFile(filename) {
+			t.Errorf("IsSourceFile(%q) = true, want false", filename)
+		}
+	}
+}
+
 func TestDiscoverHonorsGitignoreAndDeduplicates(t *testing.T) {
 	root := t.TempDir()
 	for _, name := range []string{"keep.go", "nested/use.go", "ignored/cache.go", "generated/deep/cache.go"} {
