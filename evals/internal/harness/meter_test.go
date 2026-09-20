@@ -119,7 +119,7 @@ func TestMeteringCostIsExplicitWhenUnknown(t *testing.T) {
 
 func TestCostMetricsRemainNullForPartialUsage(t *testing.T) {
 	input := int64(100)
-	metrics, err := ComputeMetrics([]CaseResult{{CaseID: "a", Rule: "GEN001", Label: LabelClean, TargetStatus: "pass", TargetNoul: floatPtr(0.1), ProcessValid: true, Attempts: 1, InputTokens: &input, OutputTokens: int64Pointer(5), CostUSD: floatPtr(0.001), CalculatedCostUSD: floatPtr(0.001), CostStatus: "calculated"}, {CaseID: "b", Rule: "GEN001", Label: LabelViolation, TargetStatus: "violation", TargetNoul: floatPtr(0.9), ProcessValid: true, Attempts: 1, CostStatus: "unknown_usage"}}, testCatalog(t))
+	metrics, err := ComputeMetrics([]CaseResult{{CaseID: "a", Rule: "GEN001", Label: LabelClean, EvalStatus: "pass", TargetNoul: floatPtr(0.1), ProcessValid: true, Attempts: 1, InputTokens: &input, OutputTokens: int64Pointer(5), CostUSD: floatPtr(0.001), CalculatedCostUSD: floatPtr(0.001), CostStatus: "calculated"}, {CaseID: "b", Rule: "GEN001", Label: LabelViolation, EvalStatus: "violation", TargetNoul: floatPtr(0.9), ProcessValid: true, Attempts: 1, CostStatus: "unknown_usage"}}, testCatalog(t))
 	if err != nil {
 		t.Fatal(err)
 	}

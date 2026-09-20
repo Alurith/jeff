@@ -3,6 +3,7 @@ package rules
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -77,6 +78,16 @@ func TestLoadRejectsMissingExternalRuleFile(t *testing.T) {
 	_, err := LoadWithOptions(LoadOptions{ExternalFiles: []string{filepath.Join(t.TempDir(), "missing.yml")}})
 	if err == nil {
 		t.Fatal("missing external rule file was accepted")
+	}
+}
+
+func TestValidateFragmentRejectsInvalidSelector(t *testing.T) {
+	err := validateFragment(fragment{Family: "TEAM", Rules: []Rule{{
+		Code: "TEAM001", Name: "custom-check", Message: "Custom rule", Scope: "file",
+		Files: Selectors{Include: []string{"["}},
+	}}})
+	if err == nil || !strings.Contains(err.Error(), "TEAM001") || !strings.Contains(err.Error(), "file selector") {
+		t.Fatalf("error = %v", err)
 	}
 }
 

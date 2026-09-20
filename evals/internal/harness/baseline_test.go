@@ -24,7 +24,7 @@ func TestBaselineCompatibilityAndRegression(t *testing.T) {
 	}
 
 	candidate = cloneRunResults(t, baseline)
-	candidate.Cases[0].TargetStatus = "violation"
+	candidate.Cases[0].EvalStatus = "violation"
 	candidate.Cases[0].TargetNoul = floatPtr(0.9)
 	candidate.Metrics.Global.FalsePositives = 1
 	candidate.Metrics.Global.Precision = floatPtr(0.5)
@@ -73,6 +73,18 @@ func TestBaselineRejectsDirtyAndWritesRoundTrip(t *testing.T) {
 	if _, err := LoadBaseline(path); err == nil || !strings.Contains(err.Error(), "dirty worktree") {
 		t.Fatalf("dirty baseline error = %v", err)
 	}
+	baseline.Metadata.WorktreeDirty = false
+	baseline.SchemaVersion = ResultsSchemaVersion - 1
+	oldSchema, err := json.Marshal(baseline)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(path, oldSchema, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := LoadBaseline(path); err == nil || !strings.Contains(err.Error(), "unsupported result schema") {
+		t.Fatalf("old schema error = %v", err)
+	}
 }
 
 func TestBaselineNullRequiredMetricFailsClosed(t *testing.T) {
@@ -104,8 +116,8 @@ func baselineFixture(t *testing.T) RunResults {
 		MetricsVersion: 1,
 		Metadata:       RunMetadata{DatasetHash: "dataset", DatasetName: "test", DatasetVersion: "1.0.0", Split: "test", SelectionHash: "selection", Profile: "smoke", Provider: "synthetic", Model: "jev-1.13.0", Repetitions: 1, BinarySHA256: "binary", CatalogHash: "catalog", ConfigHash: "config", EffectiveThresholdHash: "thresholds", WorktreeDirty: false},
 		Cases: []CaseResult{
-			{CaseID: "clean", Rule: "GEN001", Label: LabelClean, Pair: "pair", Repetition: 1, TargetStatus: "pass", TargetNoul: floatPtr(0.1), ProcessValid: true},
-			{CaseID: "violation", Rule: "GEN001", Label: LabelViolation, Pair: "pair", Repetition: 1, TargetStatus: "violation", TargetNoul: floatPtr(0.9), ProcessValid: true},
+			{CaseID: "clean", Rule: "GEN001", Label: LabelClean, Pair: "pair", Repetition: 1, EvalStatus: "pass", TargetNoul: floatPtr(0.1), ProcessValid: true},
+			{CaseID: "violation", Rule: "GEN001", Label: LabelViolation, Pair: "pair", Repetition: 1, EvalStatus: "violation", TargetNoul: floatPtr(0.9), ProcessValid: true},
 		},
 		Metrics: &Metrics{Observations: 2, Global: global, PerRule: perRule, Pairs: pairs},
 	}

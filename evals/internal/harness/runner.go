@@ -3,8 +3,6 @@ package harness
 import (
 	"bytes"
 	"context"
-	"crypto/sha256"
-	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -21,7 +19,7 @@ import (
 	"jeff/internal/rules"
 )
 
-const ResultsSchemaVersion = 1
+const ResultsSchemaVersion = 2
 
 type RunOptions struct {
 	Dataset    Dataset
@@ -75,7 +73,6 @@ type CaseResult struct {
 	JeffExitCode       int             `json:"jeff_exit_code"`
 	JeffStatus         string          `json:"jeff_status,omitempty"`
 	EvalStatus         string          `json:"eval_status,omitempty"`
-	TargetStatus       string          `json:"target_status,omitempty"`
 	TargetNoul         *float64        `json:"target_noul,omitempty"`
 	Checks             []ObservedCheck `json:"checks"`
 	Errors             []ObservedError `json:"errors"`
@@ -281,7 +278,7 @@ func (r RunResults) ExitCode() int {
 		if item.Unavailable || !item.ProcessValid {
 			return 2
 		}
-		status := evaluatedStatus(item)
+		status := item.EvalStatus
 		switch item.Label {
 		case LabelClean:
 			if status != "pass" {
@@ -411,7 +408,6 @@ func executeCase(ctx context.Context, binary, providerURL string, config Config,
 	}
 	if result.TargetNoul != nil {
 		result.EvalStatus = evalStatusForScore(result.Rule, *result.TargetNoul, thresholds)
-		result.TargetStatus = result.EvalStatus
 		if _, overridden := config.Thresholds.Overrides[result.Rule]; !overridden && result.EvalStatus != result.JeffStatus {
 			result.Unavailable = true
 			result.ErrorKind = "threshold_mismatch"
@@ -558,13 +554,6 @@ func evalStatusForScore(rule string, score float64, thresholds map[string]Effect
 	return "inconclusive"
 }
 
-func evaluatedStatus(observation CaseResult) string {
-	if observation.EvalStatus != "" {
-		return observation.EvalStatus
-	}
-	return observation.TargetStatus
-}
-
 func cloneFloat(value *float64) *float64 {
 	if value == nil {
 		return nil
@@ -677,8 +666,7 @@ func hashFile(filename string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	digest := sha256.Sum256(data)
-	return hex.EncodeToString(digest[:]), nil
+	return hashBytes(data), nil
 }
 
 func hashSelection(selected []LoadedCase, options RunOptions) (string, error) {

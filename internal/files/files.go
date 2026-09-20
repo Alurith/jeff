@@ -140,11 +140,7 @@ func ResolveRoot(root string) (string, error) {
 	return filepath.Clean(resolved), nil
 }
 
-func Discover(root string, paths []string, configured ...DiscoveryOptions) ([]Input, error) {
-	var options DiscoveryOptions
-	if len(configured) > 0 {
-		options = configured[0]
-	}
+func Discover(root string, paths []string, options DiscoveryOptions) ([]Input, error) {
 	options.Exclude = append(append([]string(nil), DefaultExclude...), options.Exclude...)
 	root, err := ResolveRoot(root)
 	if err != nil {

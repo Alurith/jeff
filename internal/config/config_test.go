@@ -18,7 +18,7 @@ func TestLoadDefaults(t *testing.T) {
 	if settings.CacheDir != DefaultCacheDir || settings.OutputFormat != "text" {
 		t.Fatalf("settings = %#v", settings)
 	}
-	if !contains(settings.Exclude, ".git") || !contains(settings.Exclude, DefaultCacheDir) {
+	if len(settings.Exclude) != 0 {
 		t.Fatalf("default excludes = %#v", settings.Exclude)
 	}
 }

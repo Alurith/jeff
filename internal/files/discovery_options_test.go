@@ -15,7 +15,7 @@ func TestDiscoverCanonicalizesRequestedPaths(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(root, "src", "main.go"), []byte("package p\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	inputs, err := Discover(root, []string{"src", "src/."})
+	inputs, err := Discover(root, []string{"src", "src/."}, DiscoveryOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -35,7 +35,7 @@ func TestDiscoverMatchesCaseInsensitiveRequestedPathsOnWindows(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(root, "src", "main.go"), []byte("package p\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	inputs, err := Discover(root, []string{"SRC"})
+	inputs, err := Discover(root, []string{"SRC"}, DiscoveryOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}

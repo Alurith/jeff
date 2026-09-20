@@ -32,26 +32,11 @@ jobs:
       - name: Test
         run: go test ./...
 
-  cross-build:
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        goos: [linux, darwin, windows]
-        goarch: [amd64, arm64]
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Set up Go
-        uses: actions/setup-go@v5
-        with:
-          go-version-file: go.mod
-          cache: true
-
-      - name: Cross-build ${{ matrix.goos }}/${{ matrix.goarch }}
-        env:
-          CGO_ENABLED: 0
-          GOOS: ${{ matrix.goos }}
-          GOARCH: ${{ matrix.goarch }}
-        run: go build -trimpath -o "$RUNNER_TEMP/jeff-${{ matrix.goos }}-${{ matrix.goarch }}" ./cmd/jeff
+      - name: Cross-build
+        run: |
+          for target in linux/amd64 linux/arm64 darwin/amd64 darwin/arm64 windows/amd64 windows/arm64; do
+            os="${target%/*}"
+            arch="${target#*/}"
+            echo "$target"
+            CGO_ENABLED=0 GOOS="$os" GOARCH="$arch" go build -trimpath -o "$RUNNER_TEMP/jeff-$os-$arch" ./cmd/jeff
+          done

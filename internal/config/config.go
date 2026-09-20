@@ -6,7 +6,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"jeff/internal/files"
 	"jeff/internal/glob"
 
 	"github.com/BurntSushi/toml"
@@ -19,16 +18,6 @@ const (
 )
 
 type Settings struct {
-	RuleFiles    []string
-	Exclude      []string
-	Include      []string
-	Src          []string
-	CacheDir     string
-	OutputFormat string
-	JevVersion   string
-}
-
-type fileSettings struct {
 	RuleFiles    []string `toml:"rule-files"`
 	Exclude      []string `toml:"exclude"`
 	Include      []string `toml:"include"`
@@ -41,7 +30,6 @@ type fileSettings struct {
 func Load(root, explicitPath string) (Settings, error) {
 	settings := Settings{
 		CacheDir:     DefaultCacheDir,
-		Exclude:      append([]string(nil), files.DefaultExclude...),
 		OutputFormat: "text",
 	}
 	path, found, err := findConfig(root, explicitPath)
@@ -61,7 +49,7 @@ func Load(root, explicitPath string) (Settings, error) {
 	if format := outputFormatHint(data); format != "" {
 		settings.OutputFormat = format
 	}
-	var raw fileSettings
+	var raw Settings
 	metadata, err := toml.Decode(string(data), &raw)
 	if err != nil {
 		return settings, fmt.Errorf("decode config %s: %w", path, err)
@@ -110,7 +98,7 @@ func findConfig(root, explicitPath string) (string, bool, error) {
 	return "", false, nil
 }
 
-func validate(settings fileSettings) error {
+func validate(settings Settings) error {
 	for name, values := range map[string][]string{
 		"rule-files": settings.RuleFiles,
 		"exclude":    settings.Exclude,
@@ -200,6 +188,9 @@ func appendCacheDirExclude(root string, settings *Settings) {
 		return
 	}
 	relative = filepath.ToSlash(relative)
+	if relative == DefaultCacheDir {
+		return
+	}
 	for _, pattern := range settings.Exclude {
 		if pattern == relative {
 			return

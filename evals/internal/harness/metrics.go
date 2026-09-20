@@ -290,7 +290,7 @@ func recordBinary(accumulator *metricAccumulator, observation CaseResult) {
 		binary.Unavailable++
 		return
 	}
-	status := evaluatedStatus(observation)
+	status := observation.EvalStatus
 	if status != "pass" && status != "violation" && status != "inconclusive" {
 		binary.Unavailable++
 		return
@@ -398,7 +398,7 @@ func finalizePairs(groups map[string]map[int]*pairSide, pairRules map[string]str
 			if side.clean == nil || side.violation == nil {
 				continue
 			}
-			if evaluatedStatus(*side.clean) == "pass" && evaluatedStatus(*side.violation) == "violation" {
+			if side.clean.EvalStatus == "pass" && side.violation.EvalStatus == "violation" {
 				item.Successful++
 			}
 			if validObservationScore(side.clean) && validObservationScore(side.violation) {

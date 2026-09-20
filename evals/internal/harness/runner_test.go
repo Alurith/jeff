@@ -54,16 +54,16 @@ func TestRunnerSyntheticEndToEnd(t *testing.T) {
 			t.Fatalf("invalid observation for %s: %#v", item.CaseID, item)
 		}
 	}
-	if byID["clean-case"].TargetStatus != "pass" || byID["clean-case"].JeffExitCode != 0 || byID["clean-case"].Attempts != 1 {
+	if byID["clean-case"].EvalStatus != "pass" || byID["clean-case"].JeffExitCode != 0 || byID["clean-case"].Attempts != 1 {
 		t.Fatalf("clean result = %#v", byID["clean-case"])
 	}
-	if byID["violation-case"].TargetStatus != "violation" || byID["violation-case"].JeffExitCode != 1 {
+	if byID["violation-case"].EvalStatus != "violation" || byID["violation-case"].JeffExitCode != 1 {
 		t.Fatalf("violation result = %#v", byID["violation-case"])
 	}
-	if byID["ambiguous-case"].TargetStatus != "inconclusive" || byID["ambiguous-case"].JeffExitCode != 2 {
+	if byID["ambiguous-case"].EvalStatus != "inconclusive" || byID["ambiguous-case"].JeffExitCode != 2 {
 		t.Fatalf("ambiguous result = %#v", byID["ambiguous-case"])
 	}
-	if byID["not-applicable-case"].TargetStatus != "" || byID["not-applicable-case"].Attempts != 0 {
+	if byID["not-applicable-case"].EvalStatus != "" || byID["not-applicable-case"].Attempts != 0 {
 		t.Fatalf("not-applicable result = %#v", byID["not-applicable-case"])
 	}
 	data, err := os.ReadFile(filepath.Join(output, "results.json"))
@@ -74,9 +74,15 @@ func TestRunnerSyntheticEndToEnd(t *testing.T) {
 	if strings.Contains(contents, "package clean") || strings.Contains(contents, syntheticAPIKey) {
 		t.Fatal("results contain source or synthetic credential")
 	}
+	if strings.Contains(contents, `"target_status"`) {
+		t.Fatal("results contain removed target_status field")
+	}
 	var persisted RunResults
 	if err := json.Unmarshal(data, &persisted); err != nil {
 		t.Fatal(err)
+	}
+	if persisted.SchemaVersion != 2 {
+		t.Fatalf("result schema = %d, want 2", persisted.SchemaVersion)
 	}
 	if persisted.Metadata.BinarySHA256 == "" || persisted.Metadata.CatalogHash == "" || persisted.Metadata.SelectionHash == "" {
 		t.Fatalf("missing provenance: %#v", persisted.Metadata)

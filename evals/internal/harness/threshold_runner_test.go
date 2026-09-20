@@ -29,7 +29,7 @@ func TestRunnerSeparatesJeffAndEvalThresholdStatuses(t *testing.T) {
 		t.Fatalf("cases = %d", len(results.Cases))
 	}
 	item := results.Cases[0]
-	if item.JeffStatus != "pass" || item.EvalStatus != "inconclusive" || item.TargetStatus != "inconclusive" {
+	if item.JeffStatus != "pass" || item.EvalStatus != "inconclusive" {
 		t.Fatalf("threshold statuses = %#v", item)
 	}
 	if results.ExitCode() != 1 || len(results.GateFailures) == 0 {

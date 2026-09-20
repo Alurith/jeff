@@ -188,17 +188,29 @@ func TestRunRejectsUnknownAuthCommand(t *testing.T) {
 	}
 }
 
-func TestRunWritesJSONForFlagErrors(t *testing.T) {
-	var stdout, stderr bytes.Buffer
-	if exit := run([]string{"check", "--output-format", "json", "--unknown"}, bytes.NewReader(nil), &stdout, &stderr); exit != 2 {
-		t.Fatalf("exit = %d, want 2", exit)
-	}
-	result := decodeJSONResult(t, stdout.Bytes())
-	if len(result.Errors) != 1 || result.Errors[0].Kind != "usage" {
-		t.Fatalf("result = %#v", result)
-	}
-	if stderr.Len() != 0 {
-		t.Fatalf("stderr = %q", stderr.String())
+func TestRunWritesJSONForUsageErrors(t *testing.T) {
+	for name, test := range map[string]struct {
+		args []string
+		want string
+	}{
+		"flag": {
+			[]string{"check", "--output-format", "json", "--unknown"},
+			`{"schema_version":1,"checks":[],"errors":[{"kind":"usage","message":"flag provided but not defined: -unknown"}],"warnings":[]}` + "\n",
+		},
+		"command": {
+			[]string{"unknown", "--output-format", "json"},
+			`{"schema_version":1,"checks":[],"errors":[{"kind":"usage","message":"unknown command \"unknown\""}],"warnings":[]}` + "\n",
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			var stdout, stderr bytes.Buffer
+			if exit := run(test.args, bytes.NewReader(nil), &stdout, &stderr); exit != 2 {
+				t.Fatalf("exit = %d, want 2", exit)
+			}
+			if stdout.String() != test.want || stderr.Len() != 0 {
+				t.Fatalf("stdout=%q stderr=%q", stdout.String(), stderr.String())
+			}
+		})
 	}
 }
 
@@ -365,7 +377,10 @@ func TestRunUsesConfiguredExternalRulesAndIncludes(t *testing.T) {
 		"docs/readme.go",
 		"generated/generated.go",
 		"tools/tool.go",
-		"vendor/dependency.go",
+		"src/.git/config.go",
+		"src/.jeff-cache/v1/entry.go",
+		"src/node_modules/package/index.js",
+		"src/vendor/dependency.go",
 	} {
 		path := filepath.Join(root, name)
 		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
@@ -387,6 +402,7 @@ rules:
     files:
       include:
         - "**/*.go"
+      allow-non-source: true
     question:
       type: noul
       instructions: The file satisfies the custom condition.
@@ -456,7 +472,7 @@ jev-version = "jev-2.0.0"
 			t.Fatalf("missing checked path %q: %#v", path, paths)
 		}
 	}
-	for _, path := range []string{"docs/readme.go", "generated/generated.go", "vendor/dependency.go"} {
+	for _, path := range []string{"docs/readme.go", "generated/generated.go", "src/.git/config.go", "src/.jeff-cache/v1/entry.go", "src/node_modules/package/index.js", "src/vendor/dependency.go"} {
 		if paths[path] {
 			t.Fatalf("excluded path was checked: %q", path)
 		}

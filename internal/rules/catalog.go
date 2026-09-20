@@ -252,8 +252,8 @@ func validateFragment(part fragment) error {
 			return fmt.Errorf("rule %q: files.include must not be empty", rule.Code)
 		}
 		for _, pattern := range append(append([]string{}, rule.Files.Include...), rule.Files.Exclude...) {
-			if err := validatePattern(pattern); err != nil {
-				return fmt.Errorf("rule %q: %w", rule.Code, err)
+			if err := glob.Validate(pattern); err != nil {
+				return fmt.Errorf("rule %q: file selector: %w", rule.Code, err)
 			}
 		}
 		if rule.Question.Type != "noul" {
@@ -269,13 +269,6 @@ func validateFragment(part fragment) error {
 		if math.IsNaN(passBelow) || math.IsInf(passBelow, 0) || math.IsNaN(failAtOrAbove) || math.IsInf(failAtOrAbove, 0) || passBelow < 0 || failAtOrAbove > 1 || passBelow > failAtOrAbove {
 			return fmt.Errorf("rule %q: decision bounds must satisfy 0 <= pass_below <= fail_at_or_above <= 1", rule.Code)
 		}
-	}
-	return nil
-}
-
-func validatePattern(pattern string) error {
-	if err := glob.Validate(pattern); err != nil {
-		return fmt.Errorf("file selector: %w", err)
 	}
 	return nil
 }

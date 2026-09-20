@@ -2,9 +2,10 @@ package harness
 
 import (
 	"fmt"
+	"maps"
 	"os"
 	"path/filepath"
-	"sort"
+	"slices"
 	"strings"
 )
 
@@ -25,11 +26,7 @@ func writeSummary(directory string, result RunResults) error {
 	writeMetricTable(&summary, result.Metrics.Global)
 
 	summary.WriteString("## Per rule\n\n")
-	rules := make([]string, 0, len(result.Metrics.PerRule))
-	for code := range result.Metrics.PerRule {
-		rules = append(rules, code)
-	}
-	sort.Strings(rules)
+	rules := slices.Sorted(maps.Keys(result.Metrics.PerRule))
 	for _, code := range rules {
 		fmt.Fprintf(&summary, "### %s\n\n", markdownValue(code))
 		writeMetricTable(&summary, result.Metrics.PerRule[code].Binary)

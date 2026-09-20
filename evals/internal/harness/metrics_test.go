@@ -22,8 +22,8 @@ func TestMetricsFormulasAndDenominators(t *testing.T) {
 		metricObservation("violation-tp", "GEN001", LabelViolation, "violation", score(0.9), 30),
 		metricObservation("violation-fn", "GEN001", LabelViolation, "pass", score(0.1), 40),
 		metricObservation("violation-abstain", "GEN001", LabelViolation, "inconclusive", score(0.5), 50),
-		{CaseID: "violation-unavailable", Rule: "GEN001", Label: LabelViolation, TargetStatus: "", Unavailable: true, ProcessValid: false, LatencyMS: 60},
-		{CaseID: "ambiguous", Rule: "GEN001", Label: LabelAmbiguous, TargetStatus: "inconclusive", TargetNoul: score(0.5), ProcessValid: true, LatencyMS: 70},
+		{CaseID: "violation-unavailable", Rule: "GEN001", Label: LabelViolation, Unavailable: true, ProcessValid: false, LatencyMS: 60},
+		{CaseID: "ambiguous", Rule: "GEN001", Label: LabelAmbiguous, EvalStatus: "inconclusive", TargetNoul: score(0.5), ProcessValid: true, LatencyMS: 70},
 		{CaseID: "not-applicable", Rule: "GEN001", Label: LabelNotApplicable, ProcessValid: true, LatencyMS: 80},
 	}
 	observations[0].Checks = []ObservedCheck{{Code: "GEN001", Status: "pass", Noul: score(0.1)}, {Code: "GEN002", Status: "violation", Noul: score(0.9)}}
@@ -73,7 +73,7 @@ func TestMetricsAllowlistedActivationRemainsVisible(t *testing.T) {
 		t.Fatal(err)
 	}
 	score := 0.1
-	metrics, err := ComputeMetrics([]CaseResult{{CaseID: "allowlisted", Rule: "GEN001", Label: LabelClean, TargetStatus: "pass", TargetNoul: &score, ProcessValid: true, Checks: []ObservedCheck{{Code: "GEN001", Status: "pass"}, {Code: "GEN002", Status: "violation"}}, AllowedActivations: []string{"GEN002"}, Attempts: 1}}, catalog)
+	metrics, err := ComputeMetrics([]CaseResult{{CaseID: "allowlisted", Rule: "GEN001", Label: LabelClean, EvalStatus: "pass", TargetNoul: &score, ProcessValid: true, Checks: []ObservedCheck{{Code: "GEN001", Status: "pass"}, {Code: "GEN002", Status: "violation"}}, AllowedActivations: []string{"GEN002"}, Attempts: 1}}, catalog)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -123,7 +123,7 @@ func TestReportWritesSummaryWithoutRawSource(t *testing.T) {
 		t.Fatal(err)
 	}
 	score := 0.1
-	observations := []CaseResult{{CaseID: "case", Rule: "GEN001", Label: LabelClean, TargetStatus: "pass", TargetNoul: &score, ProcessValid: true, Filename: "sample.go", SourceSHA256: "hash", LatencyMS: 1}}
+	observations := []CaseResult{{CaseID: "case", Rule: "GEN001", Label: LabelClean, EvalStatus: "pass", TargetNoul: &score, ProcessValid: true, Filename: "sample.go", SourceSHA256: "hash", LatencyMS: 1}}
 	metrics, err := ComputeMetrics(observations, catalog)
 	if err != nil {
 		t.Fatal(err)
@@ -149,11 +149,11 @@ func TestReportWritesSummaryWithoutRawSource(t *testing.T) {
 }
 
 func metricObservation(id, rule string, label Label, status string, score *float64, latency int64) CaseResult {
-	return CaseResult{CaseID: id, Rule: rule, Label: label, TargetStatus: status, TargetNoul: score, ProcessValid: true, LatencyMS: latency}
+	return CaseResult{CaseID: id, Rule: rule, Label: label, EvalStatus: status, TargetNoul: score, ProcessValid: true, LatencyMS: latency}
 }
 
 func pairObservation(id, pair string, repetition int, label Label, status string, score *float64) CaseResult {
-	return CaseResult{CaseID: id, Rule: "GEN001", Label: label, Pair: pair, Repetition: repetition, TargetStatus: status, TargetNoul: score, ProcessValid: true}
+	return CaseResult{CaseID: id, Rule: "GEN001", Label: label, Pair: pair, Repetition: repetition, EvalStatus: status, TargetNoul: score, ProcessValid: true}
 }
 
 func assertFloat(t *testing.T, actual *float64, expected float64) {

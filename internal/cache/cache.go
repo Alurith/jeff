@@ -88,10 +88,6 @@ func (s Store) Put(model, state string, question typesafe.Question, noul float64
 	}
 	temporaryName := temporary.Name()
 	defer os.Remove(temporaryName)
-	if err := temporary.Chmod(0o600); err != nil {
-		_ = temporary.Close()
-		return err
-	}
 	if _, err := temporary.Write(data); err != nil {
 		_ = temporary.Close()
 		return err

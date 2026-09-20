@@ -77,21 +77,27 @@ func TestLoadAPIKeyDistinguishesMissingAndBackendFailure(t *testing.T) {
 }
 
 func TestValidateAPIKeyBoundaries(t *testing.T) {
-	for name, value := range map[string][]byte{
-		"empty":     nil,
-		"too large": bytes.Repeat([]byte{'a'}, MaxAPIKeyBytes+1),
-		"NUL":       {'a', 0},
-		"LF":        {'a', '\n'},
-		"CR":        {'a', '\r'},
+	for name, value := range map[string]string{
+		"empty":     "",
+		"too large": strings.Repeat("a", MaxAPIKeyBytes+1),
+		"NUL":       "a\x00",
+		"LF":        "a\n",
+		"CR":        "a\r",
 	} {
 		t.Run(name, func(t *testing.T) {
-			if err := ValidateAPIKey(value); err == nil {
-				t.Fatal("invalid API key was accepted")
+			byteErr := ValidateAPIKey([]byte(value))
+			stringErr := validateAPIKey(value)
+			if byteErr == nil || stringErr == nil || byteErr.Error() != stringErr.Error() {
+				t.Fatalf("byte error = %v, string error = %v", byteErr, stringErr)
 			}
 		})
 	}
-	if err := ValidateAPIKey(bytes.Repeat([]byte{'a'}, MaxAPIKeyBytes)); err != nil {
-		t.Fatalf("max-sized API key rejected: %v", err)
+	if err := validateAPIKey("a\n\x00"); err == nil || err.Error() != "API key contains a NUL character" {
+		t.Fatalf("mixed control error = %v", err)
+	}
+	value := strings.Repeat("a", MaxAPIKeyBytes)
+	if byteErr, stringErr := ValidateAPIKey([]byte(value)), validateAPIKey(value); byteErr != nil || stringErr != nil {
+		t.Fatalf("max-sized API key: byte error = %v, string error = %v", byteErr, stringErr)
 	}
 }
 

@@ -5,7 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"sort"
+	"maps"
+	"slices"
 )
 
 type BaselineComparison struct {
@@ -219,16 +220,16 @@ func caseIndex(cases []CaseResult) map[string]CaseResult {
 }
 
 func compareCaseTransitions(regressions *[]Regression, before, after CaseResult) {
-	if before.Label == LabelClean && after.Label == LabelClean && evaluatedStatus(before) != "violation" && evaluatedStatus(after) == "violation" {
+	if before.Label == LabelClean && after.Label == LabelClean && before.EvalStatus != "violation" && after.EvalStatus == "violation" {
 		*regressions = append(*regressions, Regression{Scope: "case", Rule: after.Rule, CaseID: after.CaseID, Kind: "new_false_positive"})
 	}
-	if before.Label == LabelViolation && after.Label == LabelViolation && evaluatedStatus(before) == "violation" && evaluatedStatus(after) != "violation" {
+	if before.Label == LabelViolation && after.Label == LabelViolation && before.EvalStatus == "violation" && after.EvalStatus != "violation" {
 		*regressions = append(*regressions, Regression{Scope: "case", Rule: after.Rule, CaseID: after.CaseID, Kind: "missed_violation"})
 	}
 	if !before.Unavailable && after.Unavailable {
 		*regressions = append(*regressions, Regression{Scope: "case", Rule: after.Rule, CaseID: after.CaseID, Kind: "new_unavailable"})
 	}
-	if evaluatedStatus(before) != "inconclusive" && evaluatedStatus(after) == "inconclusive" {
+	if before.EvalStatus != "inconclusive" && after.EvalStatus == "inconclusive" {
 		*regressions = append(*regressions, Regression{Scope: "case", Rule: after.Rule, CaseID: after.CaseID, Kind: "new_inconclusive"})
 	}
 }
@@ -338,11 +339,7 @@ func compareBinaryGates(regressions *[]Regression, scope, rule string, before, a
 }
 
 func compareRuleGates(regressions *[]Regression, before, after map[string]RuleMetrics, gates Gates) {
-	codes := make([]string, 0, len(after))
-	for code := range after {
-		codes = append(codes, code)
-	}
-	sort.Strings(codes)
+	codes := slices.Sorted(maps.Keys(after))
 	for _, code := range codes {
 		beforeRule, ok := before[code]
 		if !ok {

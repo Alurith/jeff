@@ -47,7 +47,7 @@ func run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 		_, _, requestedFormat, _ := partitionCheckArgs(args[1:])
 		err := fmt.Errorf("unknown command %q", args[0])
 		if requestedFormat == "json" {
-			return writeJSONError(stdout, stderr, check.ErrorKindUsage, err)
+			return writeResult("json", stdout, stderr, check.NewErrorResult(check.ErrorKindUsage, "", err))
 		}
 		fmt.Fprintf(stderr, "error: %s\n", err)
 		usage(stderr)
@@ -67,7 +67,7 @@ func run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 			return 0
 		}
 		if requestedFormat == "json" {
-			return writeJSONError(stdout, stderr, check.ErrorKindUsage, err)
+			return writeResult("json", stdout, stderr, check.NewErrorResult(check.ErrorKindUsage, "", err))
 		}
 		fmt.Fprintln(stderr, err)
 		writeCheckUsage(stderr, flags)
@@ -351,13 +351,6 @@ func writeResult(format string, stdout, stderr io.Writer, result check.Result) i
 		return 2
 	}
 	return result.ExitCode()
-}
-
-func writeJSONError(stdout, stderr io.Writer, kind check.ErrorKind, err error) int {
-	if writeErr := check.WriteJSON(stdout, check.NewErrorResult(kind, "", err)); writeErr != nil {
-		fmt.Fprintf(stderr, "error: write JSON output: %s\n", writeErr)
-	}
-	return 2
 }
 
 func writeCheckUsage(w io.Writer, flags *flag.FlagSet) {

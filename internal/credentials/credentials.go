@@ -1,11 +1,9 @@
 package credentials
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
 	"os"
-	"strings"
 
 	"github.com/zalando/go-keyring"
 )
@@ -28,7 +26,7 @@ func loadAPIKey(lookupEnv func(string) (string, bool), get func(string, string) 
 		if value == "" {
 			return "", fmt.Errorf("%s is set but empty", environment)
 		}
-		if err := validateAPIKeyString(value); err != nil {
+		if err := validateAPIKey(value); err != nil {
 			return "", fmt.Errorf("%s is invalid: %w", environment, err)
 		}
 		return value, nil
@@ -41,7 +39,7 @@ func loadAPIKey(lookupEnv func(string) (string, bool), get func(string, string) 
 	if err != nil {
 		return "", fmt.Errorf("read TypeSafe API key from system keyring: %w", err)
 	}
-	if err := validateAPIKeyString(value); err != nil {
+	if err := validateAPIKey(value); err != nil {
 		return "", fmt.Errorf("stored TypeSafe API key is invalid: %w", err)
 	}
 	return value, nil
@@ -64,33 +62,25 @@ func DeleteAPIKey() error {
 	return nil
 }
 
-func ValidateAPIKey(value []byte) error {
-	if len(value) == 0 {
-		return fmt.Errorf("API key cannot be empty")
-	}
-	if len(value) > MaxAPIKeyBytes {
-		return fmt.Errorf("API key exceeds %d bytes", MaxAPIKeyBytes)
-	}
-	if bytes.IndexByte(value, 0) >= 0 {
-		return fmt.Errorf("API key contains a NUL character")
-	}
-	if bytes.IndexByte(value, '\n') >= 0 || bytes.IndexByte(value, '\r') >= 0 {
-		return fmt.Errorf("API key cannot contain newline characters")
-	}
-	return nil
-}
+func ValidateAPIKey(value []byte) error { return validateAPIKey(value) }
 
-func validateAPIKeyString(value string) error {
+func validateAPIKey[T ~string | ~[]byte](value T) error {
 	if len(value) == 0 {
 		return fmt.Errorf("API key cannot be empty")
 	}
 	if len(value) > MaxAPIKeyBytes {
 		return fmt.Errorf("API key exceeds %d bytes", MaxAPIKeyBytes)
 	}
-	if strings.IndexByte(value, 0) >= 0 {
-		return fmt.Errorf("API key contains a NUL character")
+	hasNewline := false
+	for i := range len(value) {
+		switch value[i] {
+		case 0:
+			return fmt.Errorf("API key contains a NUL character")
+		case '\n', '\r':
+			hasNewline = true
+		}
 	}
-	if strings.IndexByte(value, '\n') >= 0 || strings.IndexByte(value, '\r') >= 0 {
+	if hasNewline {
 		return fmt.Errorf("API key cannot contain newline characters")
 	}
 	return nil

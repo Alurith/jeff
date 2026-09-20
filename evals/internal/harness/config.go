@@ -1,13 +1,12 @@
 package harness
 
 import (
-	"crypto/sha256"
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"maps"
 	"math"
 	"regexp"
-	"sort"
+	"slices"
 
 	"jeff/internal/rules"
 )
@@ -231,11 +230,7 @@ func EffectiveThresholds(catalog rules.Catalog, overrides map[string]Threshold) 
 }
 
 func HashEffectiveThresholds(thresholds map[string]EffectiveThreshold) (string, error) {
-	codes := make([]string, 0, len(thresholds))
-	for code := range thresholds {
-		codes = append(codes, code)
-	}
-	sort.Strings(codes)
+	codes := slices.Sorted(maps.Keys(thresholds))
 	ordered := make([]struct {
 		Code  string             `json:"code"`
 		Value EffectiveThreshold `json:"threshold"`
@@ -250,8 +245,7 @@ func HashEffectiveThresholds(thresholds map[string]EffectiveThreshold) (string, 
 	if err != nil {
 		return "", err
 	}
-	digest := sha256.Sum256(data)
-	return hex.EncodeToString(digest[:]), nil
+	return hashBytes(data), nil
 }
 
 func validateBounds(passBelow, failAtOrAbove float64) error {

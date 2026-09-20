@@ -3,6 +3,7 @@ package cache
 import (
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 
 	"jeff/internal/typesafe"
@@ -17,6 +18,19 @@ func TestStoreRoundTripAndInferenceKeyBoundaries(t *testing.T) {
 	}
 	if err := store.Put("jev-1.13.0", "source", question, 0.75); err != nil {
 		t.Fatal(err)
+	}
+	if runtime.GOOS != "windows" {
+		cacheKey, err := key("jev-1.13.0", "source", question)
+		if err != nil {
+			t.Fatal(err)
+		}
+		info, err := os.Stat(filepath.Join(directory, cacheKey+".json"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if mode := info.Mode().Perm(); mode&0o077 != 0 {
+			t.Fatalf("cache mode = %v", mode)
+		}
 	}
 	if data, err := os.ReadFile(filepath.Join(directory, ".gitignore")); err != nil || string(data) != "*\n" {
 		t.Fatalf("cache gitignore = %q, error = %v", data, err)

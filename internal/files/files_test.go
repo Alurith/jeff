@@ -41,7 +41,7 @@ func TestIsSourceFileUsesConservativeAllowlist(t *testing.T) {
 
 func TestDiscoverHonorsGitignoreAndDeduplicates(t *testing.T) {
 	root := t.TempDir()
-	for _, name := range []string{"keep.go", "nested/use.go", "ignored/cache.go", "generated/deep/cache.go"} {
+	for _, name := range []string{"keep.go", "nested/use.go", "ignored/cache.go", "generated/deep/cache.go", ".git/config.go", ".jeff-cache/v1/entry.go", "vendor/dependency.go", "node_modules/package/index.js"} {
 		path := filepath.Join(root, name)
 		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 			t.Fatal(err)
@@ -54,7 +54,7 @@ func TestDiscoverHonorsGitignoreAndDeduplicates(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	inputs, err := Discover(root, []string{".", "keep.go", "nested"})
+	inputs, err := Discover(root, []string{".", "keep.go", "nested"}, DiscoveryOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -62,7 +62,7 @@ func TestDiscoverHonorsGitignoreAndDeduplicates(t *testing.T) {
 		t.Fatalf("inputs = %#v", inputs)
 	}
 
-	inputs, err = Discover(root, []string{"ignored/cache.go"})
+	inputs, err = Discover(root, []string{"ignored/cache.go"}, DiscoveryOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -70,7 +70,7 @@ func TestDiscoverHonorsGitignoreAndDeduplicates(t *testing.T) {
 		t.Fatalf("explicit ignored file = %#v", inputs)
 	}
 
-	inputs, err = Discover(root, []string{"nested"})
+	inputs, err = Discover(root, []string{"nested"}, DiscoveryOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -94,7 +94,7 @@ func TestDiscoverUsesRootRelativeSlashPatterns(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	inputs, err := Discover(root, nil)
+	inputs, err := Discover(root, nil, DiscoveryOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -119,7 +119,7 @@ func TestDiscoverHonorsNestedGitignore(t *testing.T) {
 		}
 	}
 
-	inputs, err := Discover(root, nil)
+	inputs, err := Discover(root, nil, DiscoveryOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -140,7 +140,7 @@ func TestDiscoverDoesNotLoadRootSymlinkedGitignore(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	inputs, err := Discover(root, nil)
+	inputs, err := Discover(root, nil, DiscoveryOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -167,7 +167,7 @@ func TestDiscoverDoesNotLoadSymlinkedGitignore(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	inputs, err := Discover(root, nil)
+	inputs, err := Discover(root, nil, DiscoveryOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -186,10 +186,10 @@ func TestDiscoverRejectsSymlinkAndOutsidePath(t *testing.T) {
 	if err := os.Symlink(target, link); err != nil {
 		t.Skipf("symlinks unavailable: %v", err)
 	}
-	if _, err := Discover(root, []string{"link.go"}); err == nil {
+	if _, err := Discover(root, []string{"link.go"}, DiscoveryOptions{}); err == nil {
 		t.Fatal("symlink was accepted")
 	}
-	if _, err := Discover(root, []string{"../outside.go"}); err == nil {
+	if _, err := Discover(root, []string{"../outside.go"}, DiscoveryOptions{}); err == nil {
 		t.Fatal("outside path was accepted")
 	}
 }

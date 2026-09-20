@@ -233,6 +233,21 @@ func TestConfigAndThresholdValidation(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	reordered := make(map[string]EffectiveThreshold, len(base))
+	for _, code := range []string{"GEN004", "GEN003", "GEN002", "GEN001"} {
+		reordered[code] = base[code]
+	}
+	baseHash, err := HashEffectiveThresholds(base)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if baseHash != "f0e0ff73b0e116d430b93638c4792b6a52e9980193f22be26f33ef7fa50be4d9" {
+		t.Fatalf("effective threshold hash = %q", baseHash)
+	}
+	reorderedHash, err := HashEffectiveThresholds(reordered)
+	if err != nil || reorderedHash != baseHash {
+		t.Fatalf("reordered hash = %q, want %q, error = %v", reorderedHash, baseHash, err)
+	}
 	pass, fail := 0.1, 0.9
 	override, err := EffectiveThresholds(catalog, map[string]Threshold{"GEN004": {PassBelow: &pass, FailAtOrAbove: &fail}})
 	if err != nil {
