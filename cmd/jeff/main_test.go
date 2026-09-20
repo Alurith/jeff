@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -15,9 +16,63 @@ import (
 	"github.com/zalando/go-keyring"
 
 	"jeff/internal/credentials"
+	"jeff/internal/selfupdate"
 )
 
 const cliRuleCount = 4
+
+func TestRunPrintsVersionWithoutInitializingCLI(t *testing.T) {
+	previous := version
+	version = "v1.2.3"
+	t.Cleanup(func() { version = previous })
+
+	var stdout, stderr bytes.Buffer
+	if exit := run([]string{"--version"}, bytes.NewReader(nil), &stdout, &stderr); exit != 0 {
+		t.Fatalf("exit = %d, want 0", exit)
+	}
+	if stdout.String() != "v1.2.3\n" || stderr.Len() != 0 {
+		t.Fatalf("stdout=%q stderr=%q", stdout.String(), stderr.String())
+	}
+}
+
+func TestRunUpdatesReleasedBinary(t *testing.T) {
+	previousVersion, previousUpdate := version, update
+	version = "v1.0.0"
+	update = func(_ context.Context, current string) (selfupdate.Result, error) {
+		if current != "v1.0.0" {
+			t.Fatalf("current version = %q", current)
+		}
+		return selfupdate.Result{CurrentVersion: "1.0.0", LatestVersion: "1.1.0", Updated: true}, nil
+	}
+	t.Cleanup(func() {
+		version = previousVersion
+		update = previousUpdate
+	})
+
+	var stdout, stderr bytes.Buffer
+	if exit := run([]string{"update"}, bytes.NewReader(nil), &stdout, &stderr); exit != 0 {
+		t.Fatalf("exit=%d stdout=%q stderr=%q", exit, stdout.String(), stderr.String())
+	}
+	if stdout.String() != "Updated jeff from 1.0.0 to 1.1.0.\n" || stderr.Len() != 0 {
+		t.Fatalf("stdout=%q stderr=%q", stdout.String(), stderr.String())
+	}
+}
+
+func TestRunReportsUpdateFailure(t *testing.T) {
+	previousUpdate := update
+	update = func(context.Context, string) (selfupdate.Result, error) {
+		return selfupdate.Result{}, selfupdate.ErrDevelopmentBuild
+	}
+	t.Cleanup(func() { update = previousUpdate })
+
+	var stdout, stderr bytes.Buffer
+	if exit := run([]string{"update"}, bytes.NewReader(nil), &stdout, &stderr); exit != 2 {
+		t.Fatalf("exit=%d stdout=%q stderr=%q", exit, stdout.String(), stderr.String())
+	}
+	if stdout.Len() != 0 || !strings.Contains(stderr.String(), "self-update is unavailable") {
+		t.Fatalf("stdout=%q stderr=%q", stdout.String(), stderr.String())
+	}
+}
 
 type jsonResult struct {
 	Checks []struct {

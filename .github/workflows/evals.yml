@@ -48,10 +48,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Require protected release ref
-        run: test "${GITHUB_REF}" = "refs/heads/main"
+        run: test "${GITHUB_REF}" = "refs/heads/master"
 
   real-eval:
-    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/master'
     runs-on: ubuntu-latest
     environment: evals-release
     strategy:

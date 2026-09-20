@@ -14,8 +14,14 @@ import (
 	"jeff/internal/config"
 	"jeff/internal/credentials"
 	"jeff/internal/files"
+	"jeff/internal/selfupdate"
 
 	"golang.org/x/term"
+)
+
+var (
+	version = "dev"
+	update  = selfupdate.Update
 )
 
 func main() {
@@ -23,12 +29,19 @@ func main() {
 }
 
 func run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
+	if len(args) == 1 && args[0] == "--version" {
+		fmt.Fprintln(stdout, version)
+		return 0
+	}
 	if len(args) == 0 || args[0] == "--help" || args[0] == "-h" {
 		usage(stdout)
 		return 0
 	}
 	if args[0] == "auth" {
 		return runAuth(args[1:], stdin, stdout, stderr)
+	}
+	if args[0] == "update" {
+		return runUpdate(args[1:], stdout, stderr)
 	}
 	if args[0] != "check" {
 		_, _, requestedFormat, _ := partitionCheckArgs(args[1:])
@@ -148,6 +161,29 @@ func runAuth(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 		authUsage(stderr)
 		return 2
 	}
+}
+
+func runUpdate(args []string, stdout, stderr io.Writer) int {
+	if len(args) == 1 && (args[0] == "--help" || args[0] == "-h") {
+		updateUsage(stdout)
+		return 0
+	}
+	if len(args) != 0 {
+		fmt.Fprintln(stderr, "error: jeff update accepts no arguments")
+		updateUsage(stderr)
+		return 2
+	}
+	result, err := update(context.Background(), version)
+	if err != nil {
+		fmt.Fprintf(stderr, "error: %s\n", err)
+		return 2
+	}
+	if result.Updated {
+		fmt.Fprintf(stdout, "Updated jeff from %s to %s.\n", result.CurrentVersion, result.LatestVersion)
+		return 0
+	}
+	fmt.Fprintf(stdout, "jeff %s is already up to date.\n", result.CurrentVersion)
+	return 0
 }
 
 func readAPIKey(input io.Reader, output io.Writer) ([]byte, error) {
@@ -337,9 +373,15 @@ func authUsage(w io.Writer) {
 	fmt.Fprintln(w, "  jeff auth logout")
 }
 
+func updateUsage(w io.Writer) {
+	fmt.Fprintln(w, "Usage: jeff update")
+}
+
 func usage(w io.Writer) {
 	fmt.Fprintln(w, "Usage:")
+	fmt.Fprintln(w, "  jeff --version")
 	fmt.Fprintln(w, "  jeff check [--config PATH] [--output-format text|json] [--no-cache] [PATH...]")
 	fmt.Fprintln(w, "  jeff auth login")
 	fmt.Fprintln(w, "  jeff auth logout")
+	fmt.Fprintln(w, "  jeff update")
 }

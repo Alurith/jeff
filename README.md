@@ -7,13 +7,97 @@ A read-only Go CLI that semantically checks your files against your rules using 
 ## Usage
 
 ```sh
+# Print the installed release version
+jeff --version
+
 # Check files in the current directory or at the provided paths
 jeff check [--config PATH] [--output-format text|json] [--no-cache] [PATH...]
 
 # Store or remove the TypeSafe credential
 jeff auth login
 jeff auth logout
+
+# Install the latest compatible GitHub release over this released binary
+jeff update
 ```
+
+## Installation
+
+### GitHub release (recommended)
+
+Download the archive and `checksums.txt` from the [latest release](https://github.com/Alurith/jeff/releases). Choose `amd64` for Intel/AMD machines and `arm64` for Apple Silicon or Linux ARM.
+
+On Linux, install the binary in `~/.local/bin`:
+
+```sh
+VERSION=0.1.0
+ARCH=amd64
+ASSET="jeff_${VERSION}_linux_${ARCH}.tar.gz"
+BASE="https://github.com/Alurith/jeff/releases/download/v${VERSION}"
+
+curl -fLO "$BASE/$ASSET"
+curl -fLO "$BASE/checksums.txt"
+grep "  ${ASSET}$" checksums.txt | sha256sum -c -
+
+tmp=$(mktemp -d)
+tar -xzf "$ASSET" -C "$tmp"
+mkdir -p "$HOME/.local/bin"
+install -m 0755 "$tmp/jeff" "$HOME/.local/bin/jeff"
+rm -rf "$tmp"
+```
+
+On macOS use the matching `darwin` archive, replace `sha256sum -c -` with `shasum -a 256 -c -`, and install it in the same `~/.local/bin` directory. Ensure it is on `PATH`:
+
+```sh
+export PATH="$HOME/.local/bin:$PATH"
+```
+
+On Windows, use PowerShell to verify and install the matching ZIP in `$HOME\bin`, then add that directory to your user `PATH`:
+
+```powershell
+$version = "0.1.0"
+$arch = "amd64"
+$asset = "jeff_${version}_windows_${arch}.zip"
+$base = "https://github.com/Alurith/jeff/releases/download/v$version"
+
+Invoke-WebRequest "$base/$asset" -OutFile $asset
+Invoke-WebRequest "$base/checksums.txt" -OutFile checksums.txt
+$expected = ((Select-String -Path checksums.txt -Pattern ("  " + [regex]::Escape($asset) + "$" )).Line -split '\s+')[0].ToLowerInvariant()
+if ((Get-FileHash $asset -Algorithm SHA256).Hash.ToLowerInvariant() -ne $expected) { throw "checksum mismatch" }
+
+$tmp = Join-Path $env:TEMP "jeff-$version"
+Remove-Item $tmp -Recurse -Force -ErrorAction Ignore
+Expand-Archive $asset -DestinationPath $tmp
+$bin = Join-Path $HOME "bin"
+New-Item $bin -ItemType Directory -Force | Out-Null
+Copy-Item (Join-Path $tmp "jeff.exe") (Join-Path $bin "jeff.exe") -Force
+```
+
+### From source
+
+```sh
+git clone https://github.com/Alurith/jeff.git
+cd jeff
+mkdir -p "$HOME/.local/bin"
+go build -o "$HOME/.local/bin/jeff" ./cmd/jeff
+```
+
+Source builds report `dev` for `jeff --version` and intentionally cannot self-update.
+
+## Updates and releases
+
+`jeff update` is explicit: it selects the latest compatible GitHub Release, verifies its SHA-256 entry in `checksums.txt`, then replaces the installed release binary. The binary directory must be writable. It never updates a `dev`/source build.
+
+To publish a release, first run the real eval workflow manually on `master` and review its test/holdout artifacts. Then push a semantic tag:
+
+```sh
+git switch master
+git pull --ff-only
+git tag -a v0.1.0 -m "v0.1.0"
+git push origin v0.1.0
+```
+
+The tag runs quality checks and GoReleaser, which publishes checksummed archives for Linux, macOS, and Windows on `amd64` and `arm64`.
 
 ## Authentication and configuration
 
